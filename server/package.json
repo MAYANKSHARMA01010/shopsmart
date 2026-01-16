@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "build": "echo 'No build necessary for server'",
     "dev": "nodemon src/index.js",
     "test": "jest",
     "lint": "echo 'No linter configured yet'"
