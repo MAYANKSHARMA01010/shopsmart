@@ -1,6 +1,6 @@
 #!/bin/bash
 
-INSTANCE_ID="i-05750ee19f6dc08a9"
+INSTANCE_ID="i-08561cce64f1ce0db"
 
 STATE=$(aws ec2 describe-instances \
   --instance-ids $INSTANCE_ID \
