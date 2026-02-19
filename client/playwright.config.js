@@ -18,7 +18,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: 'VITE_ENABLE_MSW=false npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
   },
