@@ -45,6 +45,11 @@ jobs:
             cd /path/to/app
             git pull origin main
 
+            # Install pnpm if missing
+            if ! command -v pnpm &> /dev/null; then
+              npm install -g pnpm
+            fi
+
             # Install dependencies and build
             cd client
             pnpm install --frozen-lockfile
