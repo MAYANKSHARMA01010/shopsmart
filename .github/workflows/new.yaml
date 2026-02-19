@@ -1,32 +1,37 @@
 name: Integration Tests
 
 on:
-    push:
-        branches: ["main"]
-    workflow_dispatch:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
 
 jobs:
-    test:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout Code
-              uses: actions/checkout@v4
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-            - name: Setup Node.js
-              uses: actions/setup-node@v4
-              with:
-                  node-version: "18"
-                  cache: "npm"
-                  cache-dependency-path: "**/package-lock.json"
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
 
-            - name: Install Client Dependencies
-              working-directory: ./client
-              run: npm ci
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
 
-            - name: Install Server Dependencies
-              working-directory: ./server
-              run: npm ci
+      - name: Install Client Dependencies
+        working-directory: ./client
+        run: pnpm install --frozen-lockfile
 
-            - name: Run Server Tests
-              working-directory: ./server
-              run: npm test --if-present
+      - name: Install Server Dependencies
+        working-directory: ./server
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Server Tests
+        working-directory: ./server
+        run: pnpm test --if-present
