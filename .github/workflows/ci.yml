@@ -16,20 +16,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
 
-      # ---------- CLIENT ----------
       - name: Install client dependencies
         working-directory: client
-        run: npm install
+        run: npm ci
 
       - name: Build client
         working-directory: client
         run: npm run build
 
-      # ---------- SERVER ----------
       - name: Install server dependencies
         working-directory: server
-        run: npm install
+        run: npm ci
 
       - name: Test server
         working-directory: server
