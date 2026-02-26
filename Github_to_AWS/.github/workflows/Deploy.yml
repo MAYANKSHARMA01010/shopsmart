@@ -1,0 +1,38 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Copy HTML file to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "Image.html"
+          target: "/home/ubuntu"
+          
+      - name: Move HTML to Nginx Web Root and Restart Nginx
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Move from home directory to Nginx root directory
+            sudo mv /home/ubuntu/Image.html /var/www/html/Image.html
+            
+            # Set proper ownership for Nginx
+            sudo chown -R www-data:www-data /var/www/html/Image.html
+            
+            # Restart Nginx to ensure it serves the newly deployed file
+            sudo systemctl restart nginx
