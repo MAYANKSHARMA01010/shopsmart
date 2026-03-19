@@ -55,7 +55,10 @@ jobs:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: pnpm test
 
-    # Placeholder for E2E tests (Playwright) we will add next
-    # - name: Run Playwright E2E Tests
-    #   working-directory: ./client
-    #   run: pnpm exec playwright test
+    - name: Install Playwright Browsers
+      working-directory: ./client
+      run: npx playwright install --with-deps chromium
+
+    - name: Run Playwright E2E Tests
+      working-directory: ./client
+      run: pnpm exec playwright test
