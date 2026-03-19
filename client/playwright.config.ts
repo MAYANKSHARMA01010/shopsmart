@@ -17,10 +17,11 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  // If we want Playwright to start the server automatically
-  // webServer: {
-  //   command: 'pnpm dev',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  // To test the app end-to-end, Playwright natively boots the dev servers
+  webServer: {
+    command: 'cd .. && pnpm dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120000,
+  },
 });
