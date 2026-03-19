@@ -1,0 +1,15 @@
+{
+  "name": "shopsmart",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "dev:server": "pnpm --filter shopsmart-server dev",
+    "dev:client": "pnpm --filter shopsmart-frontend dev",
+    "build": "pnpm --filter shopsmart-frontend build",
+    "db:generate": "pnpm --filter shopsmart-server db:generate",
+    "db:migrate": "pnpm --filter shopsmart-server db:migrate",
+    "db:studio": "pnpm --filter shopsmart-server db:studio",
+    "install:all": "pnpm install"
+  }
+}
