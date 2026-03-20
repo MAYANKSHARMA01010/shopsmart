@@ -1,4 +1,4 @@
-const prisma = require('../models/prismaClient');
+const prisma = require('../configs/database');
 const logger = require('../utils/logger');
 
 exports.getAllProducts = async (req, res, next) => {
@@ -29,7 +29,7 @@ exports.getProductById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const product = await prisma.product.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: Number.parseInt(id, 10) },
     });
     if (!product) return res.status(404).json({ error: 'Product not found' });
     res.json(product);
@@ -51,8 +51,8 @@ exports.createProduct = async (req, res, next) => {
       data: {
         name,
         description: description || null,
-        price: parseFloat(price),
-        stock: parseInt(stock) || 0,
+        price: Number.parseFloat(price),
+        stock: Number.parseInt(stock, 10) || 0,
         category: category || null,
         imageUrl: imageUrl || null,
       },
@@ -69,16 +69,16 @@ exports.updateProduct = async (req, res, next) => {
     const { id } = req.params;
     const { name, description, price, stock, category, imageUrl } = req.body;
 
-    const existing = await prisma.product.findUnique({ where: { id: parseInt(id) } });
+    const existing = await prisma.product.findUnique({ where: { id: Number.parseInt(id, 10) } });
     if (!existing) return res.status(404).json({ error: 'Product not found' });
 
     const product = await prisma.product.update({
-      where: { id: parseInt(id) },
+      where: { id: Number.parseInt(id, 10) },
       data: {
         ...(name !== undefined && { name }),
         ...(description !== undefined && { description }),
-        ...(price !== undefined && { price: parseFloat(price) }),
-        ...(stock !== undefined && { stock: parseInt(stock) }),
+        ...(price !== undefined && { price: Number.parseFloat(price) }),
+        ...(stock !== undefined && { stock: Number.parseInt(stock, 10) }),
         ...(category !== undefined && { category }),
         ...(imageUrl !== undefined && { imageUrl }),
       },
@@ -93,10 +93,10 @@ exports.updateProduct = async (req, res, next) => {
 exports.deleteProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const existing = await prisma.product.findUnique({ where: { id: parseInt(id) } });
+    const existing = await prisma.product.findUnique({ where: { id: Number.parseInt(id, 10) } });
     if (!existing) return res.status(404).json({ error: 'Product not found' });
 
-    await prisma.product.delete({ where: { id: parseInt(id) } });
+    await prisma.product.delete({ where: { id: Number.parseInt(id, 10) } });
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     logger.error('Error deleting product:', error);

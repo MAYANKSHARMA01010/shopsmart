@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('dotenv').config({ path: '.env.local', override: true });
 const express = require('express');
 const cors = require('cors');
 
@@ -9,14 +10,8 @@ const { errorHandler, routeNotFoundHandler } = require('./middlewares/errorMiddl
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    process.env.CLIENT_URL,
-  ].filter(Boolean),
-  credentials: true,
-}));
+const corsOptions = require('./configs/cors');
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

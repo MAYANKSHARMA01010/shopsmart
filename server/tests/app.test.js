@@ -1,6 +1,6 @@
 const request = require('supertest');
 const app = require('../src/server');
-const prisma = require('../src/models/prismaClient');
+const prisma = require('../src/configs/database');
 
 describe('ShopSmart Backend API', () => {
   

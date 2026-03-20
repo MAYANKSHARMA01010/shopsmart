@@ -1,17 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const { Pool } = require('pg');
-const { PrismaPg } = require('@prisma/adapter-pg');
-
-const connectionString = process.env.DATABASE_URL;
-const isLocalhost = connectionString ? connectionString.includes('localhost') || connectionString.includes('127.0.0.1') : true;
-
-const pool = new Pool({ 
-  connectionString,
-  ssl: isLocalhost ? false : { rejectUnauthorized: false }
-});
-
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const prisma = require('../src/configs/database.js');
 
 async function main() {
   console.log('Seeding 50 products into the database...');
@@ -45,13 +32,13 @@ async function main() {
   console.log(`Successfully generated and inserted ${created.count} products.`);
 }
 
-main()
-  .catch((e) => {
+(async () => {
+  try {
+    await main();
+  } catch (e) {
     console.error('Seeding failed:', e);
     process.exit(1);
-  })
-  .finally(async () => {
+  } finally {
     await prisma.$disconnect();
-    // End the pool to allow process to exit
-    await pool.end();
-  });
+  }
+})();
