@@ -24,7 +24,7 @@ pnpm install --frozen-lockfile
 # 5. Database Setup (Idempotent push/migrate)
 echo "=> Syncing database schema..."
 cd server
-npx prisma db push --accept-data-loss
+pnpm prisma db push --accept-data-loss
 cd ..
 
 # 6. Build Frontend
