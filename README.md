@@ -37,21 +37,28 @@ For an in-depth dive into the technical challenges, automated workflow decisions
 
 ---
 
-## 🚀 Local Development Setup
+### 1. Cloning the Repository
+```bash
+git clone https://github.com/your-username/shopsmart.git
+cd shopsmart
+```
 
-### 1. Requirements
+### 2. Requirements
 *   **Node.js** (v20+)
 *   **pnpm** (v9+)
 *   **PostgreSQL** Database (Neon or local)
 
-### 2. Environment Variables
-Create a `.env` file in both the `server/` and `client/` directories using the provided example files.
+### 3. Environment Variables
+Create the following environment files to configure your local development environment.
 
 **`server/.env`**:
 ```env
-DATABASE_URL="postgresql://user:password@hostname/dbname"
+DATABASE_URL="postgresql://user:password@localhost:5432/shopsmart?sslmode=disable"
 PORT=5001
-CLIENT_URL=http://localhost:3000
+
+# CORS Allowed Origins (Local)
+LOCAL_CLIENT_URL_1=http://localhost:3000
+LOCAL_CLIENT_URL_2=http://127.0.0.1:3000
 ```
 
 **`client/.env.local`**:
@@ -68,7 +75,7 @@ pnpm install
 
 # 2. Push the Prisma schema to your PostgreSQL database
 cd server
-npx prisma db push
+pnpm prisma db push
 cd ..
 ```
 
@@ -97,7 +104,7 @@ pnpm test
 *Make sure your local development server is running on port 3000 first!*
 ```bash
 cd client
-npx playwright test
+pnpm exec playwright test
 ```
 
 ---
