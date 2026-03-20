@@ -1,5 +1,7 @@
 require('dotenv').config();
-require('dotenv').config({ path: '.env.local', override: true });
+if (process.env.NODE_ENV !== 'test') {
+  require('dotenv').config({ path: '.env.local', override: true });
+}
 const express = require('express');
 const cors = require('cors');
 
