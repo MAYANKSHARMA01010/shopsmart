@@ -10,17 +10,32 @@ jobs:
   build_and_test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v4
       with:
         node-version: '20'
 
     - name: Install pnpm
-      uses: pnpm/action-setup@v5
+      uses: pnpm/action-setup@v4
       with:
         version: 9
         run_install: false
@@ -31,7 +46,7 @@ jobs:
         echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
     - name: Setup pnpm cache
-      uses: actions/cache@v5
+      uses: actions/cache@v4
       with:
         path: ${{ env.STORE_PATH }}
         key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -48,13 +63,19 @@ jobs:
     - name: Prisma Generate
       working-directory: ./server
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
       run: npx prisma generate
+
+    - name: Prisma DB Push for Tests
+      working-directory: ./server
+      env:
+        DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
+      run: npx prisma db push
 
     - name: Run Backend Unit & Integration Tests
       working-directory: ./server
       env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
       run: pnpm test
 
     - name: Install Playwright Browsers
