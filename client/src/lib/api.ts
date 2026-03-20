@@ -1,6 +1,8 @@
 import type { Product, ProductFormData, HealthStatus } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+import { API_CONFIG } from "@/configs/api";
+
+const API_URL = API_CONFIG.BASE_URL;
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
@@ -21,10 +23,13 @@ export const api = {
 
   products: {
     list: (params?: { category?: string; search?: string }) => {
-      const qs = new URLSearchParams(
-        Object.entries(params || {}).filter(([, v]) => !!v) as [string, string][]
-      ).toString();
-      return request<Product[]>(`/api/products${qs ? `?${qs}` : ""}`);
+      const searchParams = new URLSearchParams();
+      if (params?.category) searchParams.append("category", params.category);
+      if (params?.search) searchParams.append("search", params.search);
+      
+      const qs = searchParams.toString();
+      const url = qs ? `/api/products?${qs}` : "/api/products";
+      return request<Product[]>(url);
     },
 
     get: (id: number) => request<Product>(`/api/products/${id}`),
@@ -34,8 +39,8 @@ export const api = {
         method: "POST",
         body: JSON.stringify({
           ...data,
-          price: parseFloat(data.price),
-          stock: parseInt(data.stock) || 0,
+          price: Number.parseFloat(data.price),
+          stock: Number.parseInt(data.stock, 10) || 0,
         }),
       }),
 
