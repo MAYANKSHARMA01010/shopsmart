@@ -9,7 +9,7 @@ else
   echo "Installing backend dependencies..."
   cd server && pnpm install
   if [ $? -ne 0 ]; then
-    echo "Backend npm install failed."
+    echo "Backend pnpm install failed."
     exit 1
   fi
 fi
@@ -21,7 +21,7 @@ else
   echo "Installing frontend dependencies..."
   cd client && pnpm install
   if [ $? -ne 0 ]; then
-    echo "Frontend npm install failed."
+    echo "Frontend pnpm install failed."
     exit 1
   fi
 fi

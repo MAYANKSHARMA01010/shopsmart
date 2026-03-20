@@ -64,13 +64,13 @@ jobs:
       working-directory: ./server
       env:
         DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
-      run: npx prisma generate
+      run: pnpm prisma generate
 
     - name: Prisma DB Push for Tests
       working-directory: ./server
       env:
         DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
-      run: npx prisma db push
+      run: pnpm prisma db push
 
     - name: Run Backend Unit & Integration Tests
       working-directory: ./server
@@ -80,7 +80,7 @@ jobs:
 
     - name: Install Playwright Browsers
       working-directory: ./client
-      run: npx playwright install --with-deps chromium
+      run: pnpm exec playwright install --with-deps chromium
 
     - name: Run Playwright E2E Tests
       working-directory: ./client
