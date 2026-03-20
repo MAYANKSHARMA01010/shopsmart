@@ -2,6 +2,11 @@
 # Idempotent Deployment Script for ShopSmart
 # This script can be run safely multiple times without causing errors or duplicating processes.
 
+# Load nvm and use correct Node version
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+nvm use default
+
 set -e # Exit on any error
 
 APP_DIR="$HOME/shopsmart"
