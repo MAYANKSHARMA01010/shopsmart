@@ -18,7 +18,10 @@ jobs:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
+        envs: DATABASE_URL
         script: |
           cd ~/shopsmart
           git pull origin main
           bash scripts/deploy.sh
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
