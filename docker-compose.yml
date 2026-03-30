@@ -1,0 +1,25 @@
+services:
+  client:
+    build:
+      context: ./client
+      dockerfile: ../docker/Dockerfile.client
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules   # ✅ KEEP THIS (important!)
+    command: npm run dev
+
+  server:
+    build:
+      context: ./server
+      dockerfile: ../docker/Dockerfile.server
+    container_name: shopsmart-server
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./server:/app
+      - /app/node_modules   # ✅ KEEP THIS
+    environment:
+      - PORT=5001
+    command: npm run dev

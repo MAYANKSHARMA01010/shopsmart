@@ -1,0 +1,17 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+# ✅ Copy prisma schema FIRST
+COPY prisma ./prisma
+
+# ✅ Now generate client
+RUN npx prisma generate
+
+# ✅ Then copy rest of code
+COPY . .
+
+CMD ["npm", "run", "dev"]

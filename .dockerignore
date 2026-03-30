@@ -6,3 +6,12 @@ node_modules
 *.log
 Dockerfile
 .dockerignore
+node_modules
+npm-debug.log
+.git
+.gitignore
+Dockerfile*
+docker-compose.yml
+dist
+build
+.env
