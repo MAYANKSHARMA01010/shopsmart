@@ -11,6 +11,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4 
-      - run: docker build . -t amritesh2001/node20
+      - run: docker build . -t ${{secrets.DOCKERHUB_USERNAME}}/node20:latest
       - run: echo "${{secrets.DOCKERHUB_PASSWORD}}" | docker login -u ${{secrets.DOCKERHUB_USERNAME}} --password-stdin
       - run: docker push ${{secrets.DOCKERHUB_USERNAME}}/node20:latest
