@@ -1,7 +1,68 @@
-node_modules
-.DS_Store
+# Dependencies
+node_modules/
+.pnpm-debug.log*
+pnpm-debug.log*
+
+# Next.js
+client/.next/
+client/out/
+client/build/
+
+# Backend
+server/dist/
+server/.tsbuildinfo
+
+# Environment Variables
 .env
-dist
-build
-coverage
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+server/.env
+server/.env.local
+client/.env
+client/.env.local
+
+# Debugging and Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+client/coverage/
+server/coverage/
+client/test-results/
+client/playwright-report/
+client/blob-report/
+client/playwright/.cache/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Prisma
+# Note: If you are using a custom output for Prisma Client, add it here.
+# server/prisma/generated-client
+
+# Docker
+.dockerignore
+# Do not ignore Dockerfiles as they are needed for the build
+
+# Project Specific
+Github_to_AWS/
+dist/
+build/
+coverage/
 .vercel
