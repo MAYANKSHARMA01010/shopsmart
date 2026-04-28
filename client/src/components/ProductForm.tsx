@@ -1,26 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import type { ProductFormData } from "@/types";
+import { productSchema, type ProductFormValues, type ProductData } from "../schemas/productSchema";
+import { z } from "zod";
 
 interface ProductFormProps {
-  onSubmit: (data: ProductFormData) => Promise<void>;
+  onSubmit: (data: ProductData) => Promise<any>;
   loading: boolean;
 }
 
 const CATEGORIES = [
-  "Electronics",
-  "Clothing",
-  "Food",
-  "Books",
-  "Sports",
-  "Toys",
-  "Beauty",
-  "Home",
-  "Tools",
+  "Electronics", "Clothing", "Food", "Books", "Sports", "Toys", "Beauty", "Home", "Tools",
 ];
 
-const EMPTY: ProductFormData = {
+const EMPTY: ProductFormValues = {
   name: "",
   description: "",
   price: "",
@@ -30,39 +23,57 @@ const EMPTY: ProductFormData = {
 };
 
 export function ProductForm({ onSubmit, loading }: ProductFormProps) {
-  const [form, setForm] = useState<ProductFormData>(EMPTY);
-  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState<ProductFormValues>(EMPTY);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [serverError, setServerError] = useState<string | null>(null);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    // Clear error for the field being changed
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-
-    if (!form.name.trim()) return setError("Product name is required.");
-    const price = parseFloat(form.price);
-    if (isNaN(price) || price < 0) return setError("Price must be a valid positive number.");
+    setErrors({});
+    setServerError(null);
 
     try {
-      await onSubmit(form);
+      const validatedData = productSchema.parse(form);
+      await onSubmit(validatedData);
       setForm(EMPTY);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create product.");
+      if (err instanceof z.ZodError) {
+        const fieldErrors: Record<string, string> = {};
+        err.errors.forEach((e) => {
+          if (e.path[0]) {
+            fieldErrors[e.path[0].toString()] = e.message;
+          }
+        });
+        setErrors(fieldErrors);
+      } else {
+        setServerError(err instanceof Error ? err.message : "An unexpected error occurred");
+      }
     }
   }
 
   return (
     <form onSubmit={handleSubmit} id="add" className="form-section">
       <div className="form-section-title">
-        <span>➕</span> Add New Product
+        <span>✨</span> Add New Product
       </div>
 
-      {error && (
-        <div className="alert alert-error">⚠️ {error}</div>
+      {serverError && (
+        <div className="alert alert-error">⚠️ {serverError}</div>
       )}
 
       <div className="form-grid">
@@ -73,14 +84,15 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
             name="name"
             value={form.name}
             onChange={handleChange}
-            placeholder="Product name"
-            required
+            placeholder="e.g. Mechanical Keyboard"
+            className={errors.name ? "input-error" : ""}
           />
+          {errors.name && <span className="error-text">{errors.name}</span>}
         </div>
 
         <div className="form-field">
           <label htmlFor="category">Category</label>
-          <select id="category" name="category" value={form.category} onChange={handleChange}>
+          <select id="category" name="category" value={form.category || ""} onChange={handleChange}>
             <option value="">— Select category —</option>
             {CATEGORIES.map((cat) => (
               <option key={cat} value={cat.toLowerCase()}>
@@ -88,6 +100,7 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
               </option>
             ))}
           </select>
+          {errors.category && <span className="error-text">{errors.category}</span>}
         </div>
 
         <div className="form-field">
@@ -95,14 +108,13 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
           <input
             id="price"
             name="price"
-            type="number"
-            step="0.01"
-            min="0"
+            type="text"
             value={form.price}
             onChange={handleChange}
             placeholder="29.99"
-            required
+            className={errors.price ? "input-error" : ""}
           />
+          {errors.price && <span className="error-text">{errors.price}</span>}
         </div>
 
         <div className="form-field">
@@ -110,12 +122,13 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
           <input
             id="stock"
             name="stock"
-            type="number"
-            min="0"
+            type="text"
             value={form.stock}
             onChange={handleChange}
             placeholder="100"
+            className={errors.stock ? "input-error" : ""}
           />
+          {errors.stock && <span className="error-text">{errors.stock}</span>}
         </div>
 
         <div className="form-field full-width">
@@ -123,10 +136,12 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
           <textarea
             id="description"
             name="description"
-            value={form.description}
+            value={form.description || ""}
             onChange={handleChange}
-            placeholder="Describe the product…"
+            placeholder="Briefly describe the product…"
+            rows={3}
           />
+          {errors.description && <span className="error-text">{errors.description}</span>}
         </div>
 
         <div className="form-field full-width">
@@ -135,10 +150,11 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
             id="imageUrl"
             name="imageUrl"
             type="url"
-            value={form.imageUrl}
+            value={form.imageUrl || ""}
             onChange={handleChange}
-            placeholder="https://example.com/image.png"
+            placeholder="https://images.unsplash.com/..."
           />
+          {errors.imageUrl && <span className="error-text">{errors.imageUrl}</span>}
         </div>
       </div>
 
@@ -146,13 +162,17 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
         <button
           type="button"
           className="btn btn-secondary"
-          onClick={() => setForm(EMPTY)}
+          onClick={() => {
+            setForm(EMPTY);
+            setErrors({});
+            setServerError(null);
+          }}
           disabled={loading}
         >
-          Clear
+          Reset
         </button>
         <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? "⏳ Saving…" : "✨ Add Product"}
+          {loading ? "⏳ Processing..." : "🚀 Add Product"}
         </button>
       </div>
     </form>
