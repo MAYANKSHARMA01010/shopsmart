@@ -1,4 +1,4 @@
-import type { Product } from "@/types";
+import type { Product } from "../schemas/productSchema";
 
 interface ProductCardProps {
   product: Product;
@@ -18,7 +18,7 @@ function getStockLabel(stock: number): string {
   return `${stock} in stock`;
 }
 
-function getCategoryEmoji(category: string | null): string {
+function getCategoryEmoji(category: string | null | undefined): string {
   const map: Record<string, string> = {
     electronics: "💻",
     clothing: "👕",
