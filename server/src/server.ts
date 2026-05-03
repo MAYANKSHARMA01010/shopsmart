@@ -3,6 +3,7 @@ dotenv.config();
 
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import logger from './utils/logger';
 import productRoutes from './routes/productRoutes';
 import { errorHandler, routeNotFoundHandler } from './middlewares/errorMiddleware';
@@ -17,8 +18,15 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const healthCheckLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60, // limit each IP to 60 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Health Check
-app.get('/api/health', async (req: Request, res: Response) => {
+app.get('/api/health', healthCheckLimiter, async (req: Request, res: Response) => {
   let redisStatus = 'disconnected';
   try {
     await redis.ping();
