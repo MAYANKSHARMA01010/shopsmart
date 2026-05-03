@@ -23,7 +23,7 @@ app.get('/api/health', async (req: Request, res: Response) => {
   try {
     await redis.ping();
     redisStatus = 'connected';
-  } catch (err) {
+  } catch (_err) {
     redisStatus = 'error';
   }
 

@@ -18,7 +18,7 @@ class ProductService {
           logger.info('Serving products from cache');
           return JSON.parse(cached);
         }
-      } catch (err) {
+      } catch (_err) {
         logger.warn('Redis Cache Error (Get): Continuing with Database');
       }
     }
@@ -41,7 +41,7 @@ class ProductService {
     if (!category && !search) {
       try {
         await redis.setex(this.CACHE_KEY, this.CACHE_TTL, JSON.stringify(products));
-      } catch (err) {
+      } catch (_err) {
         // Silent fail for caching
       }
     }
@@ -73,7 +73,7 @@ class ProductService {
     // Invalidate cache
     try {
       await redis.del(this.CACHE_KEY);
-    } catch (err) {}
+    } catch (_err) {}
     
     return product;
   }
@@ -98,7 +98,7 @@ class ProductService {
     // Invalidate cache
     try {
       await redis.del(this.CACHE_KEY);
-    } catch (err) {}
+    } catch (_err) {}
     
     return product;
   }
@@ -116,7 +116,7 @@ class ProductService {
     // Invalidate cache
     try {
       await redis.del(this.CACHE_KEY);
-    } catch (err) {}
+    } catch (_err) {}
     
     return { message: 'Product deleted successfully' };
   }

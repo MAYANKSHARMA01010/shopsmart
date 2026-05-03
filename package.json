@@ -10,6 +10,7 @@
     "db:generate": "pnpm --filter shopsmart-server db:generate",
     "db:migrate": "pnpm --filter shopsmart-server db:migrate",
     "db:studio": "pnpm --filter shopsmart-server db:studio",
+    "lint": "pnpm --parallel -r lint",
     "install:all": "pnpm install"
   }
 }
