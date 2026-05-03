@@ -87,6 +87,8 @@ jobs:
 
       - name: Run Frontend E2E Tests
         working-directory: ./client
+        env:
+          DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
         run: pnpm exec playwright test
 
       - name: Upload Test Reports
