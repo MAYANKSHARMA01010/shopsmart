@@ -18,10 +18,18 @@ export default defineConfig({
     },
   ],
   // To test the app end-to-end, Playwright natively boots the dev servers
-  webServer: {
-    command: 'cd .. && pnpm dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  webServer: [
+    {
+      command: 'cd ../server && pnpm dev',
+      url: 'http://localhost:5001/api/health',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+    {
+      command: 'pnpm dev',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    }
+  ],
 });
