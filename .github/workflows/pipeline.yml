@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions: {}
+
 jobs:
   phase-1-testing:
     name: Phase 1 - Testing
