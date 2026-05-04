@@ -10,6 +10,13 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d shopsmart"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shopsmart-net
 
   redis:
     image: redis:7-alpine
@@ -18,6 +25,13 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shopsmart-net
 
   backend:
     build:
@@ -32,8 +46,12 @@ services:
       NODE_ENV: production
       FRONTEND_LOCAL_URL: http://localhost:3000
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - shopsmart-net
 
   frontend:
     build:
@@ -47,6 +65,12 @@ services:
       NODE_ENV: production
     depends_on:
       - backend
+    networks:
+      - shopsmart-net
+
+networks:
+  shopsmart-net:
+    driver: bridge
 
 volumes:
   postgres_data:
