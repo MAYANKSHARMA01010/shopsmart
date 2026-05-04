@@ -9,9 +9,11 @@ describe('ShopSmart Backend API', () => {
   after(async () => {
     try {
       await prisma.$disconnect();
-      await redis.quit();
+      if (redis.status === 'ready' || redis.status === 'connecting') {
+        await redis.quit();
+      }
     } catch (e) {
-      console.warn('Cleanup error:', e);
+      // Silent catch for cleanup noise
     }
   });
 
