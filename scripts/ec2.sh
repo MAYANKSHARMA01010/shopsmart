@@ -58,17 +58,30 @@ else
   echo "Using existing security group: $SG_ID"
 fi
 
-echo "Launching EC2 instance..."
+echo "Checking for existing running instance with name: $TAG_NAME..."
 
-INSTANCE_ID=$(aws ec2 run-instances \
+EXISTING_INSTANCE_ID=$(aws ec2 describe-instances \
   --region $REGION \
-  --image-id $AMI_ID \
-  --instance-type $INSTANCE_TYPE \
-  --key-name $KEY_NAME \
-  --security-group-ids $SG_ID \
-  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$TAG_NAME}]" \
-  --query "Instances[0].InstanceId" \
-  --output text)
+  --filters "Name=tag:Name,Values=$TAG_NAME" "Name=instance-state-name,Values=running" \
+  --query "Reservations[0].Instances[0].InstanceId" \
+  --output text 2>/dev/null || true)
+
+if [[ -n "$EXISTING_INSTANCE_ID" && "$EXISTING_INSTANCE_ID" != "None" ]]; then
+  echo "✅ Found existing instance: $EXISTING_INSTANCE_ID. Reusing it."
+  INSTANCE_ID=$EXISTING_INSTANCE_ID
+else
+  echo "🚀 No running instance found. Launching new EC2 instance..."
+  INSTANCE_ID=$(aws ec2 run-instances \
+    --region $REGION \
+    --image-id $AMI_ID \
+    --instance-type $INSTANCE_TYPE \
+    --key-name $KEY_NAME \
+    --security-group-ids $SG_ID \
+    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$TAG_NAME}]" \
+    --query "Instances[0].InstanceId" \
+    --output text)
+  echo "Instance launched: $INSTANCE_ID"
+fi
 
 echo "Instance ID: $INSTANCE_ID"
 

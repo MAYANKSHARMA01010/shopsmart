@@ -33,9 +33,33 @@ jobs:
     uses: ./.github/workflows/03-docker-build-push.yml
     secrets: inherit
 
-  phase-4-deploy:
-    name: "Phase 4: EC2 Deployment"
-    needs: phase-3-docker
-    if: success() && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/04-deploy.yml
+  phase-4-ecs-deploy:
+    name: "Phase 4: ECS Deployment"
+    needs: phase-3-docker-build
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/04-ecs-deploy.yml
     secrets: inherit
+
+  # SAFETY TRAP: Cleanup on Failure
+  cleanup-on-failure:
+    name: "Safety Trap: Cleanup"
+    needs: [phase-2-infra, phase-3-docker-build, phase-4-ecs-deploy]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Terminate Ghost Resources
+        run: |
+          echo "=> Pipeline failed! Cleaning up to save costs..."
+          # Terminate any EC2 instances tagged with 'shopsmart'
+          IDS=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=shopsmart" "Name=instance-state-name,Values=running" --query "Reservations[].Instances[].InstanceId" --output text)
+          if [ -n "$IDS" ]; then
+            aws ec2 terminate-instances --instance-ids $IDS
+            echo "Terminated: $IDS"
+          fi

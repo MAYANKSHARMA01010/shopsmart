@@ -95,3 +95,22 @@ jobs:
             sudo docker compose up -d
             sudo docker image prune -f
             echo "Deployment successful on host: ${{ secrets.EC2_HOST }}"
+
+  cleanup:
+    name: Safety Cleanup
+    needs: [verify, package, deploy]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Terminate Ghost EC2
+        run: |
+          IDS=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=Ubuntu-CLI-Auto" "Name=instance-state-name,Values=running" --query "Reservations[].Instances[].InstanceId" --output text)
+          if [ -n "$IDS" ]; then
+            aws ec2 terminate-instances --instance-ids $IDS
+          fi
