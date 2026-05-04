@@ -23,9 +23,9 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
-      - name: "Terraform Init & Validate"
+      - name: "Terraform Plan & Apply"
         working-directory: ./terraform
         run: |
-          terraform init -backend=false
-          terraform validate
-          terraform fmt -check
+          terraform init
+          terraform plan -out=tfplan
+          terraform apply -auto-approve tfplan

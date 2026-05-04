@@ -1,60 +1,23 @@
 version: 2
 updates:
-  # 📦 PNPM Workspaces (Root lockfile orchestration)
   - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "daily" # Increased to daily to help clear existing 42 vulnerabilities
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-    rebase-strategy: "auto"
-    labels:
-      - "dependencies"
-      - "security"
-    groups:
-      # Groups small updates into single PRs to reduce noise
-      tooling:
-        patterns:
-          - "eslint*"
-          - "typescript*"
-          - "@types/*"
-          - "prettier*"
-      core-deps:
-        patterns:
-          - "*"
-
-  # 🐳 Maintain Docker base images (Security critical)
-  - package-ecosystem: "docker"
-    directory: "/client"
-    schedule:
-      interval: "weekly"
-    labels:
-      - "dependencies"
-      - "docker"
-
-  - package-ecosystem: "docker"
     directory: "/server"
     schedule:
       interval: "weekly"
-    labels:
-      - "dependencies"
-      - "docker"
+    open-pull-requests-limit: 5
 
-  # 🏗️ Maintain Infrastructure dependencies
+  - package-ecosystem: "npm"
+    directory: "/client"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
   - package-ecosystem: "terraform"
     directory: "/terraform"
     schedule:
       interval: "weekly"
-    labels:
-      - "dependencies"
-      - "terraform"
 
-  # ⚙️ Maintain GitHub Actions (Keep CI/CD stable)
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    labels:
-      - "dependencies"
-      - "github-actions"

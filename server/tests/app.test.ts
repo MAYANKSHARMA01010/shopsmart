@@ -4,7 +4,7 @@ import app from '../src/server';
 import prisma from '../src/config/database';
 import redis from '../src/utils/redis';
 
-describe('ShopSmart Backend API', () => {
+describe('SHOP SMART - INTEGRATION TEST (API + DATABASE)', () => {
   
   after(async () => {
     try {
