@@ -8,7 +8,10 @@ name: "Masterclass: End-to-End EC2 Deployment"
 # 5. Production Reliability (Healthchecks & Pruning)
 
 on:
-  workflow_dispatch: # Allows manual trigger for demonstration
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   # STEP 1: VERIFY
