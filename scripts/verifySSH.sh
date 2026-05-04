@@ -1,6 +1,19 @@
 # Local verification script to check SSH accessibility
 
-TARGET_IP="35.172.233.164"
+# Load environment variables from root .env
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+elif [ -f ../.env ]; then
+    export $(grep -v '^#' ../.env | xargs)
+fi
+
+TARGET_IP=${TARGET_IP}
+
+if [ -z "$TARGET_IP" ]; then
+    echo "[ERROR] TARGET_IP is not set. Please check your .env file."
+    exit 1
+fi
+
 
 echo "=> Checking if SSH (Port 22) is reachable at $TARGET_IP..."
 

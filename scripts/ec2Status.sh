@@ -1,8 +1,21 @@
 #!/bin/bash
 # Script to verify EC2 instance status and Public IP
 
-INSTANCE_ID="i-08561cce64f1ce0db"
-REGION="us-east-1"
+# Load environment variables from root .env
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+elif [ -f ../.env ]; then
+    export $(grep -v '^#' ../.env | xargs)
+fi
+
+INSTANCE_ID=${INSTANCE_ID}
+REGION=${REGION}
+
+if [ -z "$INSTANCE_ID" ] || [ -z "$REGION" ]; then
+    echo "[ERROR] INSTANCE_ID or REGION is not set. Please check your .env file."
+    exit 1
+fi
+
 
 echo "=> Checking status for $INSTANCE_ID in $REGION..."
 

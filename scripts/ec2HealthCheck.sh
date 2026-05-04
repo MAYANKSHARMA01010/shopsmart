@@ -1,6 +1,19 @@
 #!/bin/bash
 
-INSTANCE_ID="i-08561cce64f1ce0db"
+# Load environment variables from root .env
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+elif [ -f ../.env ]; then
+    export $(grep -v '^#' ../.env | xargs)
+fi
+
+INSTANCE_ID=${INSTANCE_ID}
+
+if [ -z "$INSTANCE_ID" ]; then
+    echo "[ERROR] INSTANCE_ID is not set. Please check your .env file."
+    exit 1
+fi
+
 
 STATE=$(aws ec2 describe-instances \
   --instance-ids $INSTANCE_ID \
