@@ -29,11 +29,15 @@ jobs:
             cd ~/shopsmart
             echo "Starting Zero-Downtime Rollout..."
             
+            # Export environment variables for Docker Compose
+            export EC2_HOST=${{ secrets.EC2_HOST }}
+            export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+
             # 1. Pull latest images from Docker Hub
-            sudo docker compose pull
+            sudo -E docker compose pull
             
             # 2. Restart services (Leveraging Healthchecks from docker-compose.yml)
-            sudo docker compose up -d
+            sudo -E docker compose up -d
             
             # 3. Clean up dangling images to save space
             sudo docker image prune -f

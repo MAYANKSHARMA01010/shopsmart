@@ -94,8 +94,10 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/shopsmart
-            sudo docker compose pull
-            sudo docker compose up -d
+            export EC2_HOST=${{ secrets.EC2_HOST }}
+            export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+            sudo -E docker compose pull
+            sudo -E docker compose up -d
             sudo docker image prune -f
             echo "Deployment successful on host: ${{ secrets.EC2_HOST }}"
 

@@ -41,10 +41,10 @@ services:
     ports:
       - "5001:5001"
     environment:
-      DATABASE_URL: postgresql://postgres:password@db:5432/shopsmart
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_LOCAL_URL: redis://redis:6379
       NODE_ENV: production
-      FRONTEND_LOCAL_URL: http://localhost:3000
+      FRONTEND_LOCAL_URL: http://${EC2_HOST}:3000
     depends_on:
       db:
         condition: service_healthy
@@ -61,7 +61,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_LOCAL_BACKEND_URL: http://localhost:5001/api
+      NEXT_PUBLIC_LOCAL_BACKEND_URL: http://${EC2_HOST}:5001/api
       NODE_ENV: production
     depends_on:
       - backend
