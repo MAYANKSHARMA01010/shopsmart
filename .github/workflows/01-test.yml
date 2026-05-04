@@ -37,8 +37,12 @@ jobs:
           
       - name: "Run Backend Tests"
         working-directory: ./server
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: pnpm test
 
       - name: "Run Frontend Tests"
         working-directory: ./client
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: pnpm test
