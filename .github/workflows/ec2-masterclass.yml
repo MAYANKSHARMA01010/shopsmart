@@ -112,22 +112,38 @@ jobs:
         run: echo "ipv4=$(curl -s https://checkip.amazonaws.com)" >> $GITHUB_OUTPUT
       - name: Whitelist Runner IP
         run: |
-          if [ -z "${{ secrets.EC2_SECURITY_GROUP_ID }}" ]; then
-            echo "ERROR: EC2_SECURITY_GROUP_ID secret is missing!"
+          # 1. Discover SG ID if not provided as a secret
+          SG_ID="${{ secrets.EC2_SECURITY_GROUP_ID }}"
+          if [ -z "$SG_ID" ]; then
+            echo "🔍 Attempting to discover Security Group for ${{ secrets.EC2_HOST }}..."
+            SG_ID=$(aws ec2 describe-instances \
+              --filters "Name=ip-address,Values=${{ secrets.EC2_HOST }}" \
+              --query "Reservations[].Instances[].SecurityGroups[0].GroupId" \
+              --output text)
+          fi
+          
+          if [ -z "$SG_ID" ] || [ "$SG_ID" == "None" ]; then
+            echo "❌ CRITICAL: Could not find Security Group ID."
+            echo "Please manually add the 'EC2_SECURITY_GROUP_ID' secret to your repository."
             exit 1
           fi
+          
+          echo "✅ Using Security Group: $SG_ID"
+          echo "SG_ID=$SG_ID" >> $GITHUB_ENV
+          
+          # 2. Authorize Ingress
           aws ec2 authorize-security-group-ingress \
-            --group-id ${{ secrets.EC2_SECURITY_GROUP_ID }} \
+            --group-id $SG_ID \
             --protocol tcp \
             --port 22 \
-            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32 || echo "⚠️ Ingress rule might already exist"
           
-          echo "Waiting for SG propagation..."
+          echo "Waiting for propagation..."
           sleep 10
       - name: Verify SSH Port
         run: |
           echo "Testing connection to ${{ secrets.EC2_HOST }}:22..."
-          nc -zv -w 5 ${{ secrets.EC2_HOST }} 22
+          nc -zv -w 10 ${{ secrets.EC2_HOST }} 22
       - name: Sync Config
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -157,10 +173,10 @@ jobs:
         if: always()
         run: |
           aws ec2 revoke-security-group-ingress \
-            --group-id ${{ secrets.EC2_SECURITY_GROUP_ID }} \
+            --group-id $SG_ID \
             --protocol tcp \
             --port 22 \
-            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32 || true
 
   cleanup:
     name: Safety Cleanup
