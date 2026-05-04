@@ -1,0 +1,145 @@
+name: "Rubric: EKS Production Deployment"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  PROJECT_NAME: shopsmart
+
+jobs:
+  # ==========================================
+  # PHASE 1: TESTING
+  # ==========================================
+  testing:
+    name: Phase 1 - Testing
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - name: Install Dependencies
+        run: |
+          cd server && pnpm install --no-frozen-lockfile
+          cd ../client && pnpm install --no-frozen-lockfile
+      - name: Run Tests & Generate Reports
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/shopsmart_test
+        run: |
+          cd server && pnpm test
+          cd ../client && pnpm test
+
+  # ==========================================
+  # PHASE 2: INFRASTRUCTURE (TERRAFORM)
+  # ==========================================
+  terraform:
+    name: Phase 2 - Terraform Provisioning
+    needs: testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+      - name: Terraform Init
+        run: cd terraform && terraform init
+      - name: Terraform Validate
+        run: cd terraform && terraform validate
+      - name: Terraform Apply
+        run: cd terraform && terraform apply -auto-approve
+
+  # ==========================================
+  # PHASE 3: CONTAINER BUILD & ECR PUSH
+  # ==========================================
+  build-and-push:
+    name: Phase 3 - Docker Build & ECR
+    needs: terraform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and Push Backend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: shopsmart-server
+          IMAGE_TAG: latest
+        run: |
+          cd server
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      - name: Build and Push Frontend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: shopsmart-client
+          IMAGE_TAG: latest
+        run: |
+          cd client
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+  # ==========================================
+  # PHASE 4: KUBERNETES DEPLOYMENT (EKS)
+  # ==========================================
+  deploy-eks:
+    name: Phase 4 - Kubernetes Deployment (EKS)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Update KubeConfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.PROJECT_NAME }}-eks-cluster
+      - name: Inject AWS Account ID into Manifests
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          sed -i "s/<YOUR_AWS_ACCOUNT_ID>/$ACCOUNT_ID/g" k8s/backend-deployment.yaml
+          sed -i "s/<YOUR_AWS_ACCOUNT_ID>/$ACCOUNT_ID/g" k8s/frontend-deployment.yaml
+      - name: Deploy Kubernetes Manifests
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/backend-deployment.yaml
+          kubectl apply -f k8s/frontend-deployment.yaml
+      - name: Ensure Deployment Stability
+        run: |
+          kubectl rollout status deployment/backend-deployment -n shopsmart-prod
+          kubectl rollout status deployment/frontend-deployment -n shopsmart-prod
+      - name: Expose Service Endpoint
+        run: |
+          echo "Frontend LoadBalancer Endpoint:"
+          kubectl get services frontend-service -n shopsmart-prod
