@@ -176,6 +176,7 @@ jobs:
       CLUSTER: shopsmart-cluster
       BACKEND_SERVICE: shopsmart-backend-service
       FRONTEND_SERVICE: shopsmart-frontend-service
+      AWS_REGION: ${{ secrets.AWS_REGION }}
     steps:
       - uses: actions/checkout@v4
       - name: Configure AWS Credentials

@@ -5,7 +5,6 @@ on:
   workflow_dispatch:
 
 env:
-  AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
   CLUSTER: shopsmart-cluster
   BACKEND_SERVICE: shopsmart-backend-service
   FRONTEND_SERVICE: shopsmart-frontend-service
@@ -14,6 +13,8 @@ jobs:
   deploy:
     name: "Deploy to ECS Fargate"
     runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
     steps:
       - uses: actions/checkout@v4
 
@@ -23,7 +24,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: "Force new deployment (backend)"
         run: |
