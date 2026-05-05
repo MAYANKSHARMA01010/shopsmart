@@ -77,6 +77,15 @@ for VPC_ID in $VPC_IDS; do
   echo "  -> Deleting VPC: $VPC_ID"
   aws ec2 delete-vpc --region $REGION --vpc-id $VPC_ID || true
   
+  echo "  -> Waiting for VPC $VPC_ID to be fully removed..."
+  # No direct 'wait vpc-deleted' command, so we poll
+  for i in {1..10}; do
+    if ! aws ec2 describe-vpcs --region $REGION --vpc-ids $VPC_ID 2>/dev/null; then
+      break
+    fi
+    sleep 2
+  done
+  
   echo "✅ Successfully cleaned up $VPC_ID!"
 done
 
@@ -93,7 +102,26 @@ for SERVICE in "${SERVICES[@]}"; do
   if [ -n "$SERVICE_EXISTS" ] && [ "$SERVICE_EXISTS" != "None" ]; then
     echo "  -> Force deleting ECS Service: $SERVICE"
     aws ecs delete-service --cluster $CLUSTER_NAME --service $SERVICE --force --region $REGION || true
+    echo "  -> Waiting for $SERVICE to finish draining (this may take a minute)..."
+    aws ecs wait services-inactive --cluster $CLUSTER_NAME --services $SERVICE --region $REGION || true
   fi
 done
 
 echo "✅ ECS cleanup complete!"
+
+echo "🪣 Cleaning up orphaned S3 Artifact Buckets..."
+# Find buckets starting with shopsmart-artifacts-
+BUCKETS=$(aws s3api list-buckets --query "Buckets[?starts_with(Name, 'shopsmart-artifacts-')].Name" --output text)
+
+for BUCKET in $BUCKETS; do
+  echo "  -> Emptying and Deleting S3 Bucket: $BUCKET"
+  # Empty bucket first (required for deletion)
+  aws s3 rm "s3://$BUCKET" --recursive || true
+  # Delete the bucket
+  aws s3api delete-bucket --bucket "$BUCKET" --region $REGION || true
+  echo "  -> Waiting for bucket $BUCKET deletion to propagate..."
+  aws s3api wait bucket-not-exists --bucket "$BUCKET" || true
+done
+
+echo "✅ S3 cleanup complete!"
+echo "🚀 Environment is clean and ready for Terraform!"
