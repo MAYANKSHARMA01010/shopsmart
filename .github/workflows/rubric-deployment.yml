@@ -144,8 +144,11 @@ jobs:
           sed -i "s/<YOUR_AWS_ACCOUNT_ID>/$ACCOUNT_ID/g" k8s/backend-deployment.yaml
           sed -i "s/<YOUR_AWS_ACCOUNT_ID>/$ACCOUNT_ID/g" k8s/frontend-deployment.yaml
       - name: Deploy Kubernetes Manifests
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           kubectl apply -f k8s/namespace.yaml
+          kubectl create secret generic shopsmart-secrets --from-literal=DATABASE_URL="$DATABASE_URL" -n shopsmart-prod --dry-run=client -o yaml | kubectl apply -f -
           kubectl apply -f k8s/backend-deployment.yaml
           kubectl apply -f k8s/frontend-deployment.yaml
       - name: Ensure Deployment Stability
