@@ -33,6 +33,7 @@ echo "--------------------------------------"
 echo "🆔 Instance ID : $INSTANCE_ID"
 echo "🚦 State       : $STATE"
 echo "🌍 Public IP   : $IP"
+echo "👤 User        : $EC2_USER"
 echo "🛡️ Sec Group   : $SG_ID"
 echo "--------------------------------------"
 
@@ -41,7 +42,8 @@ if [ "$STATE" != "running" ]; then
 elif [ "$IP" == "null" ]; then
     echo "❌ ALERT: Instance does not have a Public IP assigned."
 else
-    echo "✅ Instance is running. Verify that your GitHub 'EC2_HOST' secret is set to: $IP"
+    echo "✅ Instance is running. Verify that your GitHub 'EC2_HOST' secret matches your current IP: $IP"
+    echo "🛡️  Also verify that 'EC2_SECURITY_GROUP_ID' matches: $SG_ID"
 fi
 
 echo "=> Verifying Security Group SSH rule..."
