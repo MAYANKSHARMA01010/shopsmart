@@ -16,13 +16,12 @@ and pushes images, and deploys to **both ECS and EKS** in parallel.
 
 1. [What's in the repo](#whats-in-the-repo)
 2. [Tech stack](#tech-stack)
-3. [Quick start (local)](#quick-start-local)
-4. [Environment variables](#environment-variables)
-5. [Running the pipeline (cloud)](#running-the-pipeline-cloud)
-6. [Repository layout](#repository-layout)
-7. [Documentation index](#documentation-index)
-8. [Common commands cheat-sheet](#common-commands-cheat-sheet)
-9. [Troubleshooting](#troubleshooting)
+3. [Getting Started](#getting-started)
+4. [Running the pipeline (cloud)](#running-the-pipeline-cloud)
+5. [Repository layout](#repository-layout)
+6. [Documentation index](#documentation-index)
+7. [Common commands cheat-sheet](#common-commands-cheat-sheet)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -67,66 +66,17 @@ Containerised, then deployed via Terraform to:
 
 ---
 
-## Quick start (local)
+## Getting Started
 
-### Prerequisites
-- Node 20+
-- pnpm 10+ (`npm i -g pnpm`)
-- Docker + Docker Compose (recommended)
-- Postgres 15 (only if not using Docker)
+If you are new to this project or looking to set it up locally, please refer to our **[Beginner Setup Guide](./docs/Beginner_Setup_Guide.md)**. 
 
-### Option A — Docker Compose (everything in one go)
+The guide covers:
+- Prerequisites and installation (Node.js, Docker, pnpm).
+- Step-by-step local setup (both Docker-based and manual approaches).
+- Environment variable configuration.
+- Basic cloud deployment steps.
 
-```bash
-docker compose up --build
-```
-
-Brings up backend (5001), frontend (3000), Postgres (5432), Redis (6379).
-
-### Option B — Manual (faster iteration)
-
-```bash
-# 1. Install all workspace deps from the root
-pnpm install
-
-# 2. Backend
-cd server
-cp .env.example .env        # set DATABASE_URL + REDIS_LOCAL_URL
-pnpm db:generate
-pnpm db:push                # sync schema
-pnpm dev                    # nodemon + ts-node, http://localhost:5001
-
-# 3. Frontend (new terminal)
-cd client
-cp .env.example .env
-pnpm dev                    # http://localhost:3000
-```
-
----
-
-## Environment variables
-
-Three `.env` files are involved. None are committed.
-
-| File | Purpose |
-|---|---|
-| `./.env` | Root: AWS creds, EC2 host, DB URL — used by `scripts/*.sh` and `scripts/sync_all_secrets.sh` |
-| `./server/.env` | Backend runtime: `DATABASE_URL`, `REDIS_LOCAL_URL`, `PORT` |
-| `./client/.env` | Frontend runtime: `NEXT_PUBLIC_API_URL` |
-
-Templates live alongside each one as `*.env.example`. Copy → fill in → never commit.
-
-### Syncing secrets to GitHub Actions
-
-```bash
-# After editing the root .env with your AWS lab creds:
-./scripts/sync_all_secrets.sh
-```
-
-This calls `gh secret set` for every key in the script's `SECRETS=(...)` list,
-including `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
-`AWS_SESSION_TOKEN`, `DATABASE_URL`, etc. See [`docs/CICD.md`](./docs/CICD.md#github-secrets)
-for the full secret list and what each one is used for.
+> **Tip:** For automated secret synchronization to GitHub Actions, you can run `./scripts/sync_all_secrets.sh` after setting up your root `.env` file (see [`docs/CICD.md`](./docs/CICD.md#github-secrets) for more details).
 
 ---
 
@@ -211,6 +161,7 @@ Start at the top, drill in as needed.
 
 | Doc | Purpose |
 |---|---|
+| **[Beginner_Setup_Guide.md](./docs/Beginner_Setup_Guide.md)** | **Start Here!** Easy, step-by-step setup guide for beginners. |
 | **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** | System overview, request lifecycle, component diagrams |
 | **[INFRASTRUCTURE.md](./docs/INFRASTRUCTURE.md)** | Terraform module-by-module breakdown, AWS resources, gotchas |
 | **[CICD.md](./docs/CICD.md)** | GitHub Actions pipeline reference, secrets, triggers, workflow per phase |
