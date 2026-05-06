@@ -51,9 +51,6 @@ resource "aws_ecs_task_definition" "backend" {
   ])
 }
 
-resource "aws_ecs_cluster" "shopsmart_cluster" {
-  name = "${var.project_name}-cluster"
-}
 
 resource "aws_ecs_service" "backend" {
   name            = "${var.project_name}-backend-service"
