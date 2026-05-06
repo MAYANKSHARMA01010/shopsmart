@@ -29,6 +29,16 @@ resource "aws_ecs_task_definition" "backend" {
           hostPort      = 5001
         }
       ]
+      environment = [
+        {
+          name  = "DATABASE_URL"
+          value = var.database_url
+        },
+        {
+          name  = "NODE_ENV"
+          value = "production"
+        }
+      ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {

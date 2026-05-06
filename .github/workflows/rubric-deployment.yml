@@ -102,9 +102,13 @@ jobs:
       - name: Terraform Validate
         run: cd terraform && terraform validate
       - name: Terraform Plan
+        env:
+          TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
         run: cd terraform && terraform plan -out=tfplan
 
       - name: Terraform Apply
+        env:
+          TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
         run: cd terraform && terraform apply -auto-approve tfplan
 
   # ==========================================

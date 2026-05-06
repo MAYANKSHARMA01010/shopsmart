@@ -9,3 +9,9 @@ variable "project_name" {
   type        = string
   default     = "shopsmart"
 }
+
+variable "database_url" {
+  description = "Database URL for the backend"
+  type        = string
+  sensitive   = true
+}
