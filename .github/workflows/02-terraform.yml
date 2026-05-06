@@ -24,6 +24,21 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
+      - name: "Ensure Terraform State S3 Bucket Exists"
+        run: |
+          BUCKET_NAME="shopsmart-terraform-state-mayank"
+          if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+            echo "Bucket $BUCKET_NAME already exists."
+          else
+            echo "Bucket $BUCKET_NAME does not exist. Attempting to create it..."
+            if [ "${{ secrets.AWS_REGION || 'us-east-1' }}" == "us-east-1" ]; then
+              aws s3api create-bucket --bucket "$BUCKET_NAME" --region ${{ secrets.AWS_REGION || 'us-east-1' }}
+            else
+              aws s3api create-bucket --bucket "$BUCKET_NAME" --region ${{ secrets.AWS_REGION || 'us-east-1' }} --create-bucket-configuration LocationConstraint=${{ secrets.AWS_REGION || 'us-east-1' }}
+            fi
+            aws s3api put-bucket-versioning --bucket "$BUCKET_NAME" --versioning-configuration Status=Enabled
+          fi
+
       - name: "Terraform Init"
         working-directory: ./terraform
         run: terraform init

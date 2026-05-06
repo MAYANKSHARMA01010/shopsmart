@@ -83,44 +83,24 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.7.0"
+      - name: Ensure Terraform State S3 Bucket Exists
+        run: |
+          BUCKET_NAME="shopsmart-terraform-state-mayank"
+          if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+            echo "Bucket $BUCKET_NAME already exists."
+          else
+            echo "Bucket $BUCKET_NAME does not exist. Attempting to create it..."
+            if [ "${{ secrets.AWS_REGION }}" == "us-east-1" ]; then
+              aws s3api create-bucket --bucket "$BUCKET_NAME" --region ${{ secrets.AWS_REGION }}
+            else
+              aws s3api create-bucket --bucket "$BUCKET_NAME" --region ${{ secrets.AWS_REGION }} --create-bucket-configuration LocationConstraint=${{ secrets.AWS_REGION }}
+            fi
+            aws s3api put-bucket-versioning --bucket "$BUCKET_NAME" --versioning-configuration Status=Enabled
+          fi
       - name: Terraform Init
         run: cd terraform && terraform init
       - name: Terraform Validate
         run: cd terraform && terraform validate
-      - name: Terraform Import Existing Resources
-        run: |
-          cd terraform
-          set +e  # imports are best-effort; missing resources will simply create
-
-          import_if_missing() {
-            local addr="$1"; local id="$2"
-            echo "-> $addr"
-            if terraform state show "$addr" > /dev/null 2>&1; then
-              echo "   already in state"
-            else
-              # Only import if AWS object actually exists
-              echo "   not in state — attempting import (will be ignored if absent)"
-              terraform import "$addr" "$id" 2>&1 | tail -5 || true
-            fi
-          }
-
-          # ECR repos
-          import_if_missing aws_ecr_repository.shopsmart_server shopsmart-server
-          import_if_missing aws_ecr_repository.shopsmart_client shopsmart-client
-
-          # CloudWatch log group (id is the log group name, leading slash kept)
-          import_if_missing aws_cloudwatch_log_group.ecs_logs /ecs/shopsmart
-
-          # ECS cluster + services
-          import_if_missing aws_ecs_cluster.shopsmart_cluster shopsmart-cluster
-          import_if_missing aws_ecs_service.backend  shopsmart-cluster/shopsmart-backend-service
-          import_if_missing aws_ecs_service.frontend shopsmart-cluster/shopsmart-frontend-service
-
-          # EKS cluster + node group (node group ID format: <cluster>:<nodegroup>)
-          import_if_missing aws_eks_cluster.shopsmart_eks shopsmart-eks-cluster
-          import_if_missing aws_eks_node_group.shopsmart_nodes shopsmart-eks-cluster:shopsmart-node-group
-
-          set -e
       - name: Terraform Plan
         run: cd terraform && terraform plan -out=tfplan
 
