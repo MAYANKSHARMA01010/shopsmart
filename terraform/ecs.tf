@@ -54,6 +54,14 @@ resource "aws_ecs_service" "backend" {
     security_groups  = [aws_security_group.ecs_tasks.id]
     assign_public_ip = true
   }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.backend_tg.arn
+    container_name   = "backend"
+    container_port   = 5001
+  }
+
+  depends_on = [aws_lb_listener.backend_listener]
 }
 
 # Frontend Task Definition
@@ -102,4 +110,12 @@ resource "aws_ecs_service" "frontend" {
     security_groups  = [aws_security_group.ecs_tasks.id]
     assign_public_ip = true
   }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.frontend_tg.arn
+    container_name   = "frontend"
+    container_port   = 3000
+  }
+
+  depends_on = [aws_lb_listener.frontend_listener]
 }
