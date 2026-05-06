@@ -104,11 +104,13 @@ jobs:
       - name: Terraform Plan
         env:
           TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
+          TF_VAR_redis_url: ${{ secrets.REDIS_SERVER_URL }}
         run: cd terraform && terraform plan -out=tfplan
 
       - name: Terraform Apply
         env:
           TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
+          TF_VAR_redis_url: ${{ secrets.REDIS_SERVER_URL }}
         run: cd terraform && terraform apply -auto-approve tfplan
 
   # ==========================================

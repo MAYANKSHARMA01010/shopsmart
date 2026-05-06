@@ -41,6 +41,18 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "FRONTEND_SERVER_URL"
           value = "http://${aws_lb.ecs_alb.dns_name}"
+        },
+        {
+          name  = "BACKEND_SERVER_URL"
+          value = "http://${aws_lb.ecs_alb.dns_name}/api"
+        },
+        {
+          name  = "REDIS_SERVER_URL"
+          value = var.redis_url
+        },
+        {
+          name  = "SERVER_PORT"
+          value = "5001"
         }
       ]
       logConfiguration = {
@@ -98,6 +110,20 @@ resource "aws_ecs_task_definition" "frontend" {
         {
           containerPort = 3000
           hostPort      = 3000
+        }
+      ]
+      environment = [
+        {
+          name  = "NODE_ENV"
+          value = "production"
+        },
+        {
+          name  = "NEXT_PUBLIC_SERVER_BACKEND_URL"
+          value = "/api"
+        },
+        {
+          name  = "NEXT_PUBLIC_SERVER_FRONTEND_URL"
+          value = "http://${aws_lb.ecs_alb.dns_name}"
         }
       ]
       logConfiguration = {
