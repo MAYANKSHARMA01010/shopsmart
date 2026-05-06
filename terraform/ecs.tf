@@ -37,6 +37,10 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "NODE_ENV"
           value = "production"
+        },
+        {
+          name  = "FRONTEND_SERVER_URL"
+          value = "http://${aws_lb.ecs_alb.dns_name}"
         }
       ]
       logConfiguration = {

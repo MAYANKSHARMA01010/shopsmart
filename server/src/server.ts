@@ -9,6 +9,7 @@ import productRoutes from './routes/productRoutes';
 import { errorHandler, routeNotFoundHandler } from './middlewares/errorMiddleware';
 import corsOptions from './config/cors';
 import redis from './utils/redis';
+import prisma from './config/database';
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 5001;
@@ -39,9 +40,7 @@ app.get('/api/health', healthCheckLimiter, async (req: Request, res: Response) =
   }
 
   try {
-    // Actually test the database connection
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
+    // Use the shared prisma instance to test the connection
     await prisma.$queryRaw`SELECT 1`;
     dbStatus = 'connected';
   } catch (_err) {
