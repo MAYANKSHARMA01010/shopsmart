@@ -46,8 +46,9 @@ resource "aws_ecs_service" "backend" {
   name            = "${var.project_name}-backend-service"
   cluster         = aws_ecs_cluster.shopsmart_cluster.id
   task_definition = aws_ecs_task_definition.backend.arn
-  launch_type     = "FARGATE"
-  desired_count   = 1
+  launch_type                       = "FARGATE"
+  desired_count                     = 1
+  health_check_grace_period_seconds = 60
 
   network_configuration {
     subnets          = [aws_subnet.public_1.id, aws_subnet.public_2.id]
@@ -102,8 +103,9 @@ resource "aws_ecs_service" "frontend" {
   name            = "${var.project_name}-frontend-service"
   cluster         = aws_ecs_cluster.shopsmart_cluster.id
   task_definition = aws_ecs_task_definition.frontend.arn
-  launch_type     = "FARGATE"
-  desired_count   = 1
+  launch_type                       = "FARGATE"
+  desired_count                     = 1
+  health_check_grace_period_seconds = 60
 
   network_configuration {
     subnets          = [aws_subnet.public_1.id, aws_subnet.public_2.id]
