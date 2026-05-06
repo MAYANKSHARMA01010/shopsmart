@@ -79,27 +79,33 @@ resource "aws_lb_target_group" "backend_tg" {
   }
 }
 
-# Listener for Frontend (Port 80)
-resource "aws_lb_listener" "frontend_listener" {
+# Single Listener for all traffic (Port 80)
+resource "aws_lb_listener" "http_listener" {
   load_balancer_arn = aws_lb.ecs_alb.arn
   port              = "80"
   protocol          = "HTTP"
 
+  # Default: Send everything to the Frontend
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.frontend_tg.arn
   }
 }
 
-# Listener for Backend (Port 5001)
-resource "aws_lb_listener" "backend_listener" {
-  load_balancer_arn = aws_lb.ecs_alb.arn
-  port              = "5001"
-  protocol          = "HTTP"
+# Path-Based Rule: Send /api/* to the Backend
+resource "aws_lb_listener_rule" "api_routing" {
+  listener_arn = aws_lb_listener.http_listener.arn
+  priority     = 10
 
-  default_action {
+  action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.backend_tg.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
+    }
   }
 }
 

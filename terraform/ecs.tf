@@ -72,7 +72,7 @@ resource "aws_ecs_service" "backend" {
     container_port   = 5001
   }
 
-  depends_on = [aws_lb_listener.backend_listener]
+  depends_on = [aws_lb_listener.http_listener]
 }
 
 # Frontend Task Definition
@@ -129,5 +129,5 @@ resource "aws_ecs_service" "frontend" {
     container_port   = 3000
   }
 
-  depends_on = [aws_lb_listener.frontend_listener]
+  depends_on = [aws_lb_listener.http_listener]
 }
