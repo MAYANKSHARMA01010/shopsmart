@@ -1,20 +1,16 @@
 # Security Group for the Application Load Balancer
+# Only port 80 is open to the internet. The ALB internally routes /api/*
+# to the backend container on port 5001 — that port must NOT be public.
 resource "aws_security_group" "alb_sg" {
   name        = "${var.project_name}-alb-sg"
-  description = "Allow inbound traffic to ALB"
+  description = "Allow HTTP inbound to ALB only"
   vpc_id      = aws_vpc.main.id
 
   ingress {
+    description = "HTTP from internet"
     protocol    = "tcp"
     from_port   = 80
     to_port     = 80
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    protocol    = "tcp"
-    from_port   = 5001
-    to_port     = 5001
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -62,15 +58,20 @@ resource "aws_lb_target_group" "frontend_tg" {
 }
 
 # Target Group for Backend
+# The TG health check goes DIRECTLY to the container on port 5001.
+# The backend Express app serves /health at root — NOT /api/health.
+# /api is only a prefix added by the ALB routing rule, not by the app.
 resource "aws_lb_target_group" "backend_tg" {
-  name        = "${var.project_name}-backend-tg"
-  port        = 5001
-  protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
-  target_type = "ip"
+  name                 = "${var.project_name}-backend-tg"
+  port                 = 5001
+  protocol             = "HTTP"
+  vpc_id               = aws_vpc.main.id
+  target_type          = "ip"
+  # Speed up rolling deployments — don't wait 300s to drain old tasks
+  deregistration_delay = 30
 
   health_check {
-    path                = "/api/health"
+    path                = "/health"
     healthy_threshold   = 2
     unhealthy_threshold = 3
     timeout             = 5
@@ -92,7 +93,10 @@ resource "aws_lb_listener" "http_listener" {
   }
 }
 
-# Path-Based Rule: Send /api/* to the Backend
+# Path-Based Rule: Send /api and /api/* to the Backend
+# "/api/*" catches /api/users, /api/products, etc.
+# "/api"   catches the exact path /api (no trailing slash) — without this
+#           a request to bare /api returns a 404 from the frontend container.
 resource "aws_lb_listener_rule" "api_routing" {
   listener_arn = aws_lb_listener.http_listener.arn
   priority     = 10
@@ -104,7 +108,7 @@ resource "aws_lb_listener_rule" "api_routing" {
 
   condition {
     path_pattern {
-      values = ["/api/*"]
+      values = ["/api", "/api/*"]
     }
   }
 }

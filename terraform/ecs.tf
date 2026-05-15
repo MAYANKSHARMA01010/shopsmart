@@ -46,6 +46,14 @@ resource "aws_ecs_task_definition" "backend" {
           name  = "BACKEND_SERVER_URL"
           value = "http://${aws_lb.ecs_alb.dns_name}/api"
         },
+        # CORS_ORIGIN tells the Express CORS middleware exactly which
+        # origin to allow. Since the frontend is served from the same
+        # ALB domain, same-origin requests won't trigger CORS at all,
+        # but this covers any direct API calls made from the browser.
+        {
+          name  = "CORS_ORIGIN"
+          value = "http://${aws_lb.ecs_alb.dns_name}"
+        },
         {
           name  = "REDIS_SERVER_URL"
           value = var.redis_url
@@ -69,12 +77,21 @@ resource "aws_ecs_task_definition" "backend" {
 
 
 resource "aws_ecs_service" "backend" {
-  name            = "${var.project_name}-backend-service"
-  cluster         = aws_ecs_cluster.shopsmart_cluster.id
-  task_definition = aws_ecs_task_definition.backend.arn
+  name                              = "${var.project_name}-backend-service"
+  cluster                           = aws_ecs_cluster.shopsmart_cluster.id
+  task_definition                   = aws_ecs_task_definition.backend.arn
   launch_type                       = "FARGATE"
   desired_count                     = 1
   health_check_grace_period_seconds = 60
+  # Allows `terraform apply` (and CI/CD) to force a new task revision
+  # even when the task definition hasn't changed (e.g. new image pushed
+  # to ECR under the same :latest tag).
+  force_new_deployment              = true
+
+  deployment_circuit_breaker {
+    enable   = true   # roll back automatically if tasks keep failing
+    rollback = true
+  }
 
   network_configuration {
     subnets          = [aws_subnet.public_1.id, aws_subnet.public_2.id]
@@ -139,12 +156,18 @@ resource "aws_ecs_task_definition" "frontend" {
 }
 
 resource "aws_ecs_service" "frontend" {
-  name            = "${var.project_name}-frontend-service"
-  cluster         = aws_ecs_cluster.shopsmart_cluster.id
-  task_definition = aws_ecs_task_definition.frontend.arn
+  name                              = "${var.project_name}-frontend-service"
+  cluster                           = aws_ecs_cluster.shopsmart_cluster.id
+  task_definition                   = aws_ecs_task_definition.frontend.arn
   launch_type                       = "FARGATE"
   desired_count                     = 1
   health_check_grace_period_seconds = 60
+  force_new_deployment              = true
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
 
   network_configuration {
     subnets          = [aws_subnet.public_1.id, aws_subnet.public_2.id]
