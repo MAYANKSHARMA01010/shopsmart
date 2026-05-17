@@ -1,0 +1,29 @@
+# =============================================================================
+# terraform.tfvars.example — ShopSmart Terraform Variable Template
+#
+# ✅  SAFE TO COMMIT — contains only placeholders, no real credentials.
+#
+# Usage:
+#   cp terraform.tfvars.example terraform.tfvars
+#   # then fill in the real values from your .env files
+#
+# Variable sources:
+#   aws_region   → .env or server/.env  : AWS_REGION
+#   project_name → (static)
+#   database_url → server/.env          : DATABASE_URL
+#   redis_url    → server/.env          : REDIS_SERVER_URL
+# =============================================================================
+
+# ── AWS ───────────────────────────────────────────────────────────────────────
+aws_region = "us-east-1"
+
+# ── Project ───────────────────────────────────────────────────────────────────
+project_name = "shopsmart"
+
+# ── Database ──────────────────────────────────────────────────────────────────
+# Copy the value of DATABASE_URL from server/.env
+database_url = "postgresql://<user>:<password>@<host>/<db>?sslmode=require"
+
+# ── Redis ─────────────────────────────────────────────────────────────────────
+# Copy the value of REDIS_SERVER_URL from server/.env
+redis_url = "redis://<host>:<port>"

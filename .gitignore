@@ -108,8 +108,12 @@ docs-assembler-config.json
 .terraform.lock.hcl
 *.tfstate
 *.tfstate.*
-!terraform/vars.tfvars
-!terraform/vars.tfvars.lock
+# Real values — never commit
+terraform.tfvars
+terraform/**/*.tfvars
+# Safe placeholder template — keep in git
+!terraform/terraform.tfvars.example
+!terraform/**/terraform.tfvars.example
 
 # --- Rendered K8s manifests (CI generates these) ---
 k8s-rendered/
