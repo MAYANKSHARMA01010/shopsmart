@@ -28,7 +28,7 @@ export default function HomePage() {
           <h1 className="hero-title">
             ShopSmart
             <br />
-            Product Manager
+            <span>Product Manager</span>
           </h1>
           <p className="hero-subtitle">
             A modern full-stack product management system built with Next.js,
