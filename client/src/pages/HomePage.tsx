@@ -4,8 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { productService } from "../services/productService";
 
+type HealthData = {
+  status: string;
+  message: string;
+  timestamp: string;
+  database?: string;
+};
+
 export default function HomePage() {
-  const [health, setHealth] = useState<{ status: string; message: string; timestamp: string; database?: string } | null>(null);
+  const [health, setHealth] = useState<HealthData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -13,53 +20,75 @@ export default function HomePage() {
     productService
       .checkHealth()
       .then(setHealth)
-      .catch((err) => setError(err.message))
+      .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  const features = [
+    {
+      icon: "⚡",
+      title: "Next.js App Router",
+      desc: "TypeScript, server & client components, and optimized rendering out of the box.",
+    },
+    {
+      icon: "🚀",
+      title: "Express Backend",
+      desc: "REST API with Zod validation and centralized error handling.",
+    },
+    {
+      icon: "🐘",
+      title: "PostgreSQL",
+      desc: "Production-grade relational database with Prisma ORM and full type safety.",
+    },
+    {
+      icon: "🔒",
+      title: "Type-Safe",
+      desc: "Shared Zod schemas enforce validation between frontend and backend simultaneously.",
+    },
+  ];
 
   return (
     <>
       {/* Hero */}
       <section className="hero">
         <div className="container">
-          <div className="hero-badge">
-            <span>●</span> Full-Stack App
-          </div>
+
           <h1 className="hero-title">
             ShopSmart
-            <br />
-            <span>Product Manager</span>
+            <span className="hero-title-accent">Product Manager</span>
           </h1>
+
           <p className="hero-subtitle">
             A modern full-stack product management system built with Next.js,
             Express, Prisma, and PostgreSQL.
           </p>
+
           <div className="hero-actions">
             <Link href="/products" className="btn btn-primary">
-              📦 Browse Products
+              Browse Products
             </Link>
             <Link href="/products#add" className="btn btn-secondary">
-              ✏️ Add Product
+              Add Product
             </Link>
           </div>
         </div>
       </section>
 
+      {/* Content */}
       <div className="container">
-        {/* Backend health */}
-        <div className="health-card">
-          {loading ? (
-            <div className="health-indicator">⏳</div>
-          ) : error ? (
-            <div className="health-indicator error">❌</div>
-          ) : (
-            <div className="health-indicator ok">✅</div>
-          )}
+        {/* Backend Health */}
+        <div className="health-card" role="status" aria-live="polite">
+          <div
+            className={`health-indicator ${
+              loading ? "loading" : error ? "error" : "ok"
+            }`}
+            aria-hidden="true"
+          >
+            {loading ? "⋯" : error ? "✕" : "✓"}
+          </div>
           <div className="health-info">
-            <h3>Backend Status</h3>
-            {loading && (
-              <p className="health-meta">Pinging Express server…</p>
-            )}
+            <p className="health-label">Backend Status</p>
+            {loading && <p className="health-meta">Pinging Express server…</p>}
             {error && (
               <>
                 <p className="health-status-error">Unreachable</p>
@@ -72,7 +101,7 @@ export default function HomePage() {
                   {health.status.toUpperCase()} — {health.message}
                 </p>
                 <p className="health-meta">
-                  🗄️ {health.database || "Connected"} &nbsp;|&nbsp; 🕐{" "}
+                  {health.database || "Connected"} &nbsp;|&nbsp;{" "}
                   {new Date(health.timestamp).toLocaleTimeString()}
                 </p>
               </>
@@ -82,30 +111,11 @@ export default function HomePage() {
 
         {/* Features */}
         <div className="feature-grid">
-          {[
-            {
-              icon: "⚡",
-              title: "Next.js 14",
-              desc: "App Router, TypeScript, server & client components",
-            },
-            {
-              icon: "🚀",
-              title: "Express Backend",
-              desc: "REST API with Zod validation & centralized error handling",
-            },
-            {
-              icon: "🐘",
-              title: "PostgreSQL",
-              desc: "Production-grade relational database via Prisma ORM",
-            },
-            {
-              icon: "🔒",
-              title: "Type-Safe",
-              desc: "Zod schemas for shared validation between frontend and backend",
-            },
-          ].map((f) => (
+          {features.map((f) => (
             <div className="feature-card" key={f.title}>
-              <div className="feature-icon">{f.icon}</div>
+              <div className="feature-icon" aria-hidden="true">
+                {f.icon}
+              </div>
               <div className="feature-title">{f.title}</div>
               <div className="feature-desc">{f.desc}</div>
             </div>

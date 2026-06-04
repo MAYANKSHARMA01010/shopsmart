@@ -1,30 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { productSchema, type ProductFormValues, type ProductData } from "../schemas/productSchema";
+import {
+  productSchema,
+  type ProductFormValues,
+  type ProductData,
+} from "../schemas/productSchema";
 import { z } from "zod";
 
 interface ProductFormProps {
-  onSubmit: (data: ProductData) => Promise<any>;
+  onSubmit: (data: ProductData) => Promise<unknown>;
   loading: boolean;
 }
 
 const CATEGORIES = [
-  "Electronics", "Clothing", "Food", "Books", "Sports", "Toys", "Beauty", "Home", "Tools",
+  "Electronics", "Clothing", "Food", "Books",
+  "Sports", "Toys", "Beauty", "Home", "Tools",
 ];
 
 const EMPTY: ProductFormValues = {
-  name: "",
+  name:        "",
   description: "",
-  price: "",
-  stock: "",
-  category: "",
-  imageUrl: "",
+  price:       "",
+  stock:       "",
+  category:    "",
+  imageUrl:    "",
 };
 
 export function ProductForm({ onSubmit, loading }: ProductFormProps) {
-  const [form, setForm] = useState<ProductFormValues>(EMPTY);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [form, setForm]             = useState<ProductFormValues>(EMPTY);
+  const [errors, setErrors]         = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
 
   function handleChange(
@@ -32,12 +37,11 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
   ) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    // Clear error for the field being changed
     if (errors[name]) {
       setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
+        const next = { ...prev };
+        delete next[name];
+        return next;
       });
     }
   }
@@ -55,82 +59,125 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
       if (err instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
         err.errors.forEach((e) => {
-          if (e.path[0]) {
-            fieldErrors[e.path[0].toString()] = e.message;
-          }
+          if (e.path[0]) fieldErrors[e.path[0].toString()] = e.message;
         });
         setErrors(fieldErrors);
       } else {
-        setServerError(err instanceof Error ? err.message : "An unexpected error occurred");
+        setServerError(
+          err instanceof Error ? err.message : "An unexpected error occurred"
+        );
       }
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} id="add" className="form-section">
+    <form
+      id="add"
+      onSubmit={handleSubmit}
+      className="form-section"
+      noValidate
+    >
       <div className="form-section-title">
-        <span>✨</span> Add New Product
+        <span className="form-section-title-icon" aria-hidden="true">+</span>
+        Add New Product
       </div>
 
       {serverError && (
-        <div className="alert alert-error">⚠️ {serverError}</div>
+        <div className="alert alert-error" role="alert">
+          {serverError}
+        </div>
       )}
 
       <div className="form-grid">
+        {/* Name */}
         <div className="form-field">
           <label htmlFor="name">Name *</label>
           <input
             id="name"
             name="name"
+            type="text"
             value={form.name}
             onChange={handleChange}
             placeholder="e.g. Mechanical Keyboard"
             className={errors.name ? "input-error" : ""}
+            aria-describedby={errors.name ? "name-error" : undefined}
+            aria-required="true"
           />
-          {errors.name && <span className="error-text">{errors.name}</span>}
+          {errors.name && (
+            <span id="name-error" className="error-text" role="alert">
+              {errors.name}
+            </span>
+          )}
         </div>
 
+        {/* Category */}
         <div className="form-field">
           <label htmlFor="category">Category</label>
-          <select id="category" name="category" value={form.category || ""} onChange={handleChange}>
-            <option value="">— Select category —</option>
+          <select
+            id="category"
+            name="category"
+            value={form.category || ""}
+            onChange={handleChange}
+            aria-describedby={errors.category ? "category-error" : undefined}
+          >
+            <option value="">Select category</option>
             {CATEGORIES.map((cat) => (
               <option key={cat} value={cat.toLowerCase()}>
                 {cat}
               </option>
             ))}
           </select>
-          {errors.category && <span className="error-text">{errors.category}</span>}
+          {errors.category && (
+            <span id="category-error" className="error-text" role="alert">
+              {errors.category}
+            </span>
+          )}
         </div>
 
+        {/* Price */}
         <div className="form-field">
           <label htmlFor="price">Price ($) *</label>
           <input
             id="price"
             name="price"
             type="text"
+            inputMode="decimal"
             value={form.price}
             onChange={handleChange}
             placeholder="29.99"
             className={errors.price ? "input-error" : ""}
+            aria-describedby={errors.price ? "price-error" : undefined}
+            aria-required="true"
           />
-          {errors.price && <span className="error-text">{errors.price}</span>}
+          {errors.price && (
+            <span id="price-error" className="error-text" role="alert">
+              {errors.price}
+            </span>
+          )}
         </div>
 
+        {/* Stock */}
         <div className="form-field">
           <label htmlFor="stock">Stock</label>
           <input
             id="stock"
             name="stock"
             type="text"
+            inputMode="numeric"
             value={form.stock}
             onChange={handleChange}
             placeholder="100"
             className={errors.stock ? "input-error" : ""}
+            aria-describedby={errors.stock ? "stock-error" : undefined}
           />
-          {errors.stock && <span className="error-text">{errors.stock}</span>}
+          {errors.stock && (
+            <span id="stock-error" className="error-text" role="alert">
+              {errors.stock}
+            </span>
+          )}
         </div>
 
+        {/* Description */}
         <div className="form-field full-width">
           <label htmlFor="description">Description</label>
           <textarea
@@ -140,21 +187,32 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
             onChange={handleChange}
             placeholder="Briefly describe the product…"
             rows={3}
+            aria-describedby={errors.description ? "description-error" : undefined}
           />
-          {errors.description && <span className="error-text">{errors.description}</span>}
+          {errors.description && (
+            <span id="description-error" className="error-text" role="alert">
+              {errors.description}
+            </span>
+          )}
         </div>
 
+        {/* Image URL */}
         <div className="form-field full-width">
-          <label htmlFor="imageUrl">Image URL (optional)</label>
+          <label htmlFor="imageUrl">Image URL</label>
           <input
             id="imageUrl"
             name="imageUrl"
             type="url"
             value={form.imageUrl || ""}
             onChange={handleChange}
-            placeholder="https://images.unsplash.com/..."
+            placeholder="https://images.unsplash.com/…"
+            aria-describedby={errors.imageUrl ? "imageurl-error" : undefined}
           />
-          {errors.imageUrl && <span className="error-text">{errors.imageUrl}</span>}
+          {errors.imageUrl && (
+            <span id="imageurl-error" className="error-text" role="alert">
+              {errors.imageUrl}
+            </span>
+          )}
         </div>
       </div>
 
@@ -171,8 +229,13 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
         >
           Reset
         </button>
-        <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? "⏳ Processing..." : "🚀 Add Product"}
+        <button
+          type="submit"
+          className={`btn btn-primary${loading ? " btn-loading" : ""}`}
+          disabled={loading}
+          aria-busy={loading}
+        >
+          {loading ? "Adding…" : "Add Product"}
         </button>
       </div>
     </form>

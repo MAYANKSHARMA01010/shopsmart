@@ -3,8 +3,8 @@ import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 
 export const metadata: Metadata = {
-  title: "ShopSmart — Modern Product Manager",
-  description: "Manage your products with a beautiful Next.js + Express + PostgreSQL stack",
+  title: "ShopSmart — Product Manager",
+  description: "Manage your product catalog with a modern full-stack application built on Next.js, Express, and PostgreSQL.",
 };
 
 export default function RootLayout({
@@ -13,7 +13,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="light" suppressHydrationWarning>
+      <head>
+        {/* Prevent theme flash on load */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var stored = localStorage.getItem('shopsmart-theme');
+                  var system = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  document.documentElement.setAttribute('data-theme', stored || system);
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body>
         <div className="page-wrapper">
           <Navbar />
@@ -21,10 +37,10 @@ export default function RootLayout({
           <footer className="footer">
             <div className="container">
               <p>
-                ShopSmart &copy; {new Date().getFullYear()} &mdash; Built with{" "}
-                <strong style={{ color: "var(--accent-light)" }}>Next.js</strong>,{" "}
-                <strong style={{ color: "var(--accent-light)" }}>Express</strong> &amp;{" "}
-                <strong style={{ color: "var(--accent-light)" }}>PostgreSQL</strong>
+                ShopSmart &copy; {new Date().getFullYear()} &mdash; Built by{" "}
+                <a target="_blank" rel="noopener noreferrer">
+                  <strong>Mayank Sharma ❤️</strong>
+                </a>
               </p>
             </div>
           </footer>
