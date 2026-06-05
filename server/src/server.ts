@@ -6,15 +6,24 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import logger from './utils/logger';
 import productRoutes from './routes/productRoutes';
+import categoryRoutes from './routes/categoryRoutes';
 import { errorHandler, routeNotFoundHandler } from './middlewares/errorMiddleware';
 import corsOptions from './config/cors';
 import redis from './utils/redis';
 import prisma from './config/database';
 
+import helmet from 'helmet';
+import { globalRateLimiter } from './middlewares/rateLimit.middleware';
+import authRoutes from './routes/authRoutes';
+
 const app = express();
 const PORT = process.env.SERVER_PORT || 5001;
 
-// Middlewares
+// Security & rate limiting middlewares
+app.use(helmet());
+app.use('/api', globalRateLimiter);
+
+// Standard middlewares
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -61,7 +70,9 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // Error Handling
 app.use(routeNotFoundHandler);

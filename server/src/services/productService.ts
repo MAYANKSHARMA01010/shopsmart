@@ -2,15 +2,31 @@ import prisma from '../config/database';
 import { AppError } from '../utils/AppError';
 import redis from '../utils/redis';
 import logger from '../utils/logger';
+import type { Prisma } from '@prisma/client';
+
+// ─── Product with category relation ────────────────────────────────────────
+
+const productWithCategory = {
+  include: { category: true },
+} satisfies Prisma.ProductDefaultArgs;
+
+type ProductWithCategory = Prisma.ProductGetPayload<typeof productWithCategory>;
+
+// ─── Service ────────────────────────────────────────────────────────────────
 
 class ProductService {
   private readonly CACHE_KEY = 'products:all';
   private readonly CACHE_TTL = 3600; // 1 hour
 
-  async getAllProducts(filters: { category?: string; search?: string }) {
+  async getAllProducts(filters: {
+    category?: string;
+    search?: string;
+    page?: string;
+    limit?: string;
+  }): Promise<ProductWithCategory[]> {
     const { category, search } = filters;
-    
-    // Try to get from cache if no filters
+
+    // Try cache if no filters
     if (!category && !search) {
       try {
         const cached = await redis.get(this.CACHE_KEY);
@@ -23,8 +39,14 @@ class ProductService {
       }
     }
 
-    const where: any = {};
-    if (category) where.category = category;
+    const where: Prisma.ProductWhereInput = { isVisible: true };
+
+    // Filter by category slug
+    if (category && category !== 'all') {
+      where.category = { slug: category };
+    }
+
+    // Full-text search on name and description
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -34,24 +56,26 @@ class ProductService {
 
     const products = await prisma.product.findMany({
       where,
+      include: { category: true },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Cache the result if no filters
+    // Cache only un-filtered results
     if (!category && !search) {
       try {
         await redis.setex(this.CACHE_KEY, this.CACHE_TTL, JSON.stringify(products));
       } catch (_err) {
-        // Silent fail for caching
+        // Silent — caching is best-effort
       }
     }
 
     return products;
   }
 
-  async getProductById(id: string) {
+  async getProductById(id: string): Promise<ProductWithCategory> {
     const product = await prisma.product.findUnique({
-      where: { id: Number.parseInt(id, 10) },
+      where: { id },
+      include: { category: true },
     });
 
     if (!product) {
@@ -61,64 +85,130 @@ class ProductService {
     return product;
   }
 
-  async createProduct(data: any) {
-    const product = await prisma.product.create({
-      data: {
-        ...data,
-        price: Number.parseFloat(data.price),
-        stock: Number.parseInt(data.stock, 10) || 0,
-      },
+  async getProductBySlug(slug: string): Promise<ProductWithCategory> {
+    const product = await prisma.product.findUnique({
+      where: { slug },
+      include: { category: true },
     });
 
-    // Invalidate cache
-    try {
-      await redis.del(this.CACHE_KEY);
-    } catch (_err) {}
-    
+    if (!product) {
+      throw new AppError('Product not found', 404);
+    }
+
     return product;
   }
 
-  async updateProduct(id: string, data: any) {
-    const productId = Number.parseInt(id, 10);
-    
-    const existing = await prisma.product.findUnique({ where: { id: productId } });
+  async createProduct(data: {
+    name: string;
+    description?: string | null;
+    basePrice: number | string;
+    comparePrice?: number | string | null;
+    stock?: number;
+    sku?: string | null;
+    images?: string[];
+    isVisible?: boolean;
+    categoryId: string;
+    slug?: string;
+  }): Promise<ProductWithCategory> {
+    // Verify category exists
+    const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+    if (!category) {
+      throw new AppError('Category not found', 400);
+    }
+
+    const product = await prisma.product.create({
+      data: {
+        name: data.name,
+        slug: data.slug ?? this.generateSlug(data.name),
+        description: data.description ?? null,
+        basePrice: data.basePrice,
+        comparePrice: data.comparePrice ?? null,
+        stock: data.stock ?? 0,
+        sku: data.sku ?? null,
+        images: data.images ?? [],
+        isVisible: data.isVisible ?? true,
+        categoryId: data.categoryId,
+      },
+      include: { category: true },
+    });
+
+    try { await redis.del(this.CACHE_KEY); } catch (_err) { /* silent */ }
+
+    return product;
+  }
+
+  async updateProduct(
+    id: string,
+    data: Partial<{
+      name: string;
+      description: string | null;
+      basePrice: number | string;
+      comparePrice: number | string | null;
+      stock: number;
+      sku: string | null;
+      images: string[];
+      isVisible: boolean;
+      categoryId: string;
+    }>
+  ): Promise<ProductWithCategory> {
+    const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) {
       throw new AppError('Product not found', 404);
+    }
+
+    if (data.categoryId) {
+      const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+      if (!category) throw new AppError('Category not found', 400);
     }
 
     const product = await prisma.product.update({
-      where: { id: productId },
+      where: { id },
       data: {
-        ...data,
-        ...(data.price !== undefined && { price: Number.parseFloat(data.price) }),
-        ...(data.stock !== undefined && { stock: Number.parseInt(data.stock, 10) }),
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.basePrice !== undefined && { basePrice: data.basePrice }),
+        ...(data.comparePrice !== undefined && { comparePrice: data.comparePrice }),
+        ...(data.stock !== undefined && { stock: data.stock }),
+        ...(data.sku !== undefined && { sku: data.sku }),
+        ...(data.images !== undefined && { images: data.images }),
+        ...(data.isVisible !== undefined && { isVisible: data.isVisible }),
+        ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
       },
+      include: { category: true },
     });
 
-    // Invalidate cache
-    try {
-      await redis.del(this.CACHE_KEY);
-    } catch (_err) {}
-    
+    try { await redis.del(this.CACHE_KEY); } catch (_err) { /* silent */ }
+
     return product;
   }
 
-  async deleteProduct(id: string) {
-    const productId = Number.parseInt(id, 10);
-    
-    const existing = await prisma.product.findUnique({ where: { id: productId } });
+  async deleteProduct(id: string): Promise<{ message: string }> {
+    const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) {
       throw new AppError('Product not found', 404);
     }
 
-    await prisma.product.delete({ where: { id: productId } });
-    
-    // Invalidate cache
-    try {
-      await redis.del(this.CACHE_KEY);
-    } catch (_err) {}
-    
+    // Soft-delete preferred: set isVisible = false
+    // Hard delete will fail if the product has been ordered (RESTRICT FK on OrderItem)
+    await prisma.product.delete({ where: { id } });
+
+    try { await redis.del(this.CACHE_KEY); } catch (_err) { /* silent */ }
+
     return { message: 'Product deleted successfully' };
+  }
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────
+
+  private generateSlug(name: string): string {
+    const base = name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-');
+
+    // 6-char suffix to prevent collisions
+    const suffix = Math.random().toString(36).substring(2, 8);
+    return `${base}-${suffix}`;
   }
 }
 
