@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import logger from './utils/logger';
 import productRoutes from './routes/productRoutes';
 import categoryRoutes from './routes/categoryRoutes';
+import cartRoutes from './routes/cartRoutes';
 import { errorHandler, routeNotFoundHandler } from './middlewares/errorMiddleware';
 import corsOptions from './config/cors';
 import redis from './utils/redis';
@@ -73,6 +74,7 @@ app.get('/', (req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Error Handling
 app.use(routeNotFoundHandler);

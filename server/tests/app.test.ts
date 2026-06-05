@@ -57,7 +57,8 @@ describe('ShopSmart — Integration Tests (API + Database)', () => {
         .send({ name: '', basePrice: -10, categoryId: 'invalid-uuid' });
 
       expect(res.status).toBe(400);
-      expect(res.body).toHaveProperty('status', 'fail');
+      expect(res.body.success).toBe(false);
+      expect(res.body).toHaveProperty('message', 'Validation error');
       expect(res.body).toHaveProperty('errors');
       expect(Array.isArray(res.body.errors)).toBe(true);
     });

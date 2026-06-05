@@ -63,7 +63,7 @@ describe('ShopSmart — Auth Integration Tests', () => {
         });
 
       expect(res.status).toBe(409);
-      expect(res.body.status).toBe('fail');
+      expect(res.body.success).toBe(false);
     });
 
     it('should return 400 if password is weak', async () => {
@@ -76,7 +76,7 @@ describe('ShopSmart — Auth Integration Tests', () => {
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.status).toBe('fail');
+      expect(res.body.success).toBe(false);
     });
   });
 

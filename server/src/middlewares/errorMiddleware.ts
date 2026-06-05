@@ -1,36 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
 import logger from '../utils/logger';
+import { AppError } from '../utils/AppError';
 
-export const errorHandler = (err: any, req: Request, res: Response, _next: NextFunction) => {
-  err.statusCode = err.statusCode || 500;
-  err.status = err.status || 'error';
-
-  if (process.env.NODE_ENV === 'development') {
-    res.status(err.statusCode).json({
-      status: err.status,
-      error: err,
-      message: err.message,
-      stack: err.stack,
-    });
-  } else {
-    // Production: Don't leak error details
-    if (err.isOperational) {
-      res.status(err.statusCode).json({
-        status: err.status,
-        message: err.message,
-      });
-    } else {
-      logger.error('ERROR 💥:', err);
-      res.status(500).json({
-        status: 'error',
-        message: 'Something went very wrong!',
-      });
-    }
-  }
+type ErrorPayload = {
+  statusCode?: number;
+  status?: string;
+  isOperational?: boolean;
+  message?: string;
+  errors?: Array<{ field?: string; message: string }>;
 };
 
-export const routeNotFoundHandler = (req: Request, res: Response, next: NextFunction) => {
-  const error: any = new Error(`Can't find ${req.originalUrl} on this server!`);
-  error.statusCode = 404;
-  next(error);
+export const errorHandler = (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  const payload = err as ErrorPayload;
+  const statusCode = payload.statusCode ?? 500;
+  const isOperational = payload.isOperational ?? false;
+
+  if (!isOperational && statusCode >= 500) {
+    logger.error('ERROR 💥:', err);
+  }
+
+  res.status(statusCode).json({
+    success: false,
+    message: isOperational && payload.message ? payload.message : 'Something went very wrong!',
+    ...(payload.errors ? { errors: payload.errors } : {}),
+  });
+};
+
+export const routeNotFoundHandler = (req: Request, _res: Response, next: NextFunction) => {
+  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 };
