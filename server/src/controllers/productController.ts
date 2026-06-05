@@ -19,7 +19,7 @@ export const getAllProducts = catchAsync(async (req: Request, res: Response) => 
 
 // ─── GET /api/products/:id ──────────────────────────────────────────────────
 export const getProductById = catchAsync(async (req: Request, res: Response) => {
-  const product = await productService.getProductById(req.params.id);
+  const product = await productService.getProductById(String(req.params['id']));
   res.json({ data: product });
 });
 
@@ -31,12 +31,12 @@ export const createProduct = catchAsync(async (req: Request, res: Response) => {
 
 // ─── PUT /api/products/:id ──────────────────────────────────────────────────
 export const updateProduct = catchAsync(async (req: Request, res: Response) => {
-  const product = await productService.updateProduct(req.params.id, req.body);
+  const product = await productService.updateProduct(String(req.params['id']), req.body);
   res.json({ data: product, message: 'Product updated successfully' });
 });
 
 // ─── DELETE /api/products/:id ───────────────────────────────────────────────
 export const deleteProduct = catchAsync(async (req: Request, res: Response) => {
-  const result = await productService.deleteProduct(req.params.id);
+  const result = await productService.deleteProduct(String(req.params['id']));
   res.json(result);
 });

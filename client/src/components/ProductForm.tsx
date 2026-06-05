@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   productSchema,
   type ProductFormValues,
   type ProductData,
 } from "../schemas/productSchema";
 import { z } from "zod";
+import { categoryService } from "../services/categoryService";
+import type { CategoryNode } from "../schemas/categorySchema";
 
 function IconPlus() {
   return (
@@ -17,10 +19,24 @@ function IconPlus() {
   );
 }
 
-interface Category {
+interface CategoryOption {
   id: string;
-  name: string;
-  slug: string;
+  label: string;
+}
+
+function flattenCategoryOptions(
+  nodes: CategoryNode[],
+  depth = 0
+): CategoryOption[] {
+  const prefix = depth > 0 ? `${"— ".repeat(depth)}` : "";
+  return nodes.flatMap((node) => {
+    const current: CategoryOption = {
+      id: node.id,
+      label: `${prefix}${node.name}`,
+    };
+    const children = flattenCategoryOptions(node.children ?? [], depth + 1);
+    return [current, ...children];
+  });
 }
 
 interface ProductFormProps {
@@ -43,22 +59,29 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
   const [imageUrlInput, setImageUrlInput] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryNode[]>([]);
+  const categoryOptions = useMemo(
+    () => flattenCategoryOptions(categories),
+    [categories]
+  );
 
   // Fetch categories from the API on mount
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api"}/categories`)
-      .then((r) => r.json())
+    let active = true;
+    categoryService
+      .getTree()
       .then((res) => {
-        const cats = res.data ?? res;
-        // Filter out 'uncategorized' (migration safety category — not for user selection)
-        setCategories(
-          (cats as Category[]).filter((c) => c.slug !== "uncategorized")
-        );
+        if (!active) return;
+        setCategories(res.data ?? []);
       })
       .catch(() => {
-        // Fallback: leave categories empty — user sees the empty select
+        if (!active) return;
+        setCategories([]);
       });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   function handleChange(
@@ -167,9 +190,9 @@ export function ProductForm({ onSubmit, loading }: ProductFormProps) {
             aria-describedby={errors.categoryId ? "category-error" : undefined}
           >
             <option value="">Select category</option>
-            {categories.map((cat) => (
+            {categoryOptions.map((cat) => (
               <option key={cat.id} value={cat.id}>
-                {cat.name}
+                {cat.label}
               </option>
             ))}
           </select>

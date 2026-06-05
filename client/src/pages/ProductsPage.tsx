@@ -6,11 +6,7 @@ import type { ProductData } from "../schemas/productSchema";
 import { formatPrice } from "../schemas/productSchema";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductForm } from "@/components/ProductForm";
-
-const CATEGORIES = [
-  "all", "electronics", "clothing", "food", "books",
-  "sports", "toys", "beauty", "home", "tools",
-];
+import { CategoryFilter } from "@/components/categories/CategoryFilter";
 
 /* ── SVG icons ───────────────────────────────────────────────────────────── */
 
@@ -183,21 +179,13 @@ export default function ProductsPage() {
           onChange={(e) => setSearch(e.target.value)}
           aria-label="Search products"
         />
-        <select
+        <CategoryFilter
           id="category-filter"
           className="filter-select"
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          aria-label="Filter by category"
-        >
-          {CATEGORIES.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat === "all"
-                ? "All Categories"
-                : cat.charAt(0).toUpperCase() + cat.slice(1)}
-            </option>
-          ))}
-        </select>
+          onChange={setCategory}
+          includeAll
+        />
       </div>
 
       {/* Loading → 6 skeleton cards that match real card dimensions */}
