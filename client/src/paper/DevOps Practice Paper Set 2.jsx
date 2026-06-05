@@ -732,7 +732,7 @@ export default function App() {
       )}
 
       <div style={{ marginTop: 28, padding: "16px 18px", background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-lg)", border: "0.5px solid var(--color-border-tertiary)" }}>
-        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>What's new in Set 2 vs Set 1</div>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>What&apos;s new in Set 2 vs Set 1</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {[
             ["Linux chmod numeric notation", "chmod 400/700 breakdown, ls -l decoding"],
