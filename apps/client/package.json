@@ -15,8 +15,8 @@
   "dependencies": {
     "@shopsmart/api-contracts": "workspace:*",
     "@tanstack/react-query": "^5.101.0",
-    "axios": "^1.7.9",
-    "next": "16.2.3",
+    "axios": "^1.16.0",
+    "next": "16.2.6",
     "react": "^19",
     "react-dom": "^19",
     "react-hot-toast": "^2.6.0",
