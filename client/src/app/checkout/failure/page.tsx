@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useCheckoutStore } from '../../../stores/checkoutStore';
+import { useCheckoutStore } from '../../../features/checkout/store/checkoutStore';
 
 export default function FailurePage() {
   const router = useRouter();
