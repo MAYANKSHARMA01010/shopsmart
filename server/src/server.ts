@@ -79,7 +79,7 @@ app.get('/', (req: Request, res: Response) => {
 
 // Swagger Documentation
 try {
-  const swaggerDocument = YAML.load(path.join(__dirname, "../docs/api/openapi.yaml"));
+  const swaggerDocument = YAML.load(path.join(__dirname, "../../docs/api/openapi.yaml"));
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 } catch (error) {
   console.warn("Swagger spec could not be loaded. Please ensure docs/api/openapi.yaml exists.");

@@ -21,6 +21,18 @@ redis.on('connect', () => {
   logger.info('Connected to Redis');
 });
 
+// Intercept duplicate connections (e.g. from BullMQ) to ensure they handle their own errors
+const originalDuplicate = redis.duplicate.bind(redis);
+redis.duplicate = (...args: any[]) => {
+  const cloned = originalDuplicate(...args);
+  cloned.on('error', (err: any) => {
+    if (err.code !== 'ECONNREFUSED') {
+      logger.error('Cloned Redis error:', err);
+    }
+  });
+  return cloned;
+};
+
 redis.on('error', (err: any) => {
   // Only log error if it's not a connection refused (to avoid spam)
   if (err.code !== 'ECONNREFUSED') {
