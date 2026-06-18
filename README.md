@@ -3,6 +3,9 @@
   <p><b>Production-grade Full Stack Commerce Platform</b></p>
   <p>Architected with Next.js, Express, TypeScript, Prisma, PostgreSQL, Redis, BullMQ, and Razorpay.</p>
 
+  ![Build Status](https://img.shields.io/github/actions/workflow/status/mayanksharma01010/shopsmart/ci.yml?branch=main)
+  ![Test Status](https://img.shields.io/badge/tests-passing-brightgreen)
+  ![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)
   ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
   ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
   ![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=nextdotjs&logoColor=white)
