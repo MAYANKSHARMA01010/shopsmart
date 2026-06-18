@@ -8,6 +8,8 @@ import logger from './utils/logger';
 import productRoutes from './routes/productRoutes';
 import categoryRoutes from './routes/categoryRoutes';
 import cartRoutes from './routes/cartRoutes';
+import checkoutRoutes from './modules/checkout/checkout.routes';
+import paymentRoutes from './modules/payment/payment.routes';
 import { errorHandler, routeNotFoundHandler } from './middlewares/errorMiddleware';
 import corsOptions from './config/cors';
 import redis from './utils/redis';
@@ -16,6 +18,7 @@ import prisma from './config/database';
 import helmet from 'helmet';
 import { globalRateLimiter } from './middlewares/rateLimit.middleware';
 import authRoutes from './routes/authRoutes';
+import './workers/paymentWebhook.worker';
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 5001;
@@ -26,6 +29,7 @@ app.use('/api', globalRateLimiter);
 
 // Standard middlewares
 app.use(cors(corsOptions));
+app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.get('/favicon.ico', (req: Request, res: Response) => { res.status(204).end(); });
@@ -75,6 +79,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/checkout', checkoutRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // Error Handling
 app.use(routeNotFoundHandler);
