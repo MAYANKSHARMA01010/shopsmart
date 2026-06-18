@@ -111,10 +111,9 @@ class AuthService {
   }
 
   async refreshTokens(rawRefreshToken: string, deviceInfo?: string) {
-    let decoded: jwt.JwtPayload | string;
     try {
-      decoded = jwt.verify(rawRefreshToken, REFRESH_SECRET);
-    } catch (_err) {
+      jwt.verify(rawRefreshToken, REFRESH_SECRET);
+    } catch {
       throw new AppError('Unauthorized: Invalid or expired refresh token', 401);
     }
 
@@ -147,7 +146,7 @@ class AuthService {
         where: { token: hashed },
         data: { isRevoked: true },
       });
-    } catch (_err) {
+    } catch {
       // If the token is not in DB or already revoked, fail gracefully for logout
     }
   }
@@ -225,7 +224,8 @@ class AuthService {
   }
 
   private sanitizeUser(user: Record<string, unknown>) {
-    const { password: _password, ...sanitized } = user;
+    const sanitized = { ...user };
+    delete sanitized.password;
     return sanitized;
   }
 }

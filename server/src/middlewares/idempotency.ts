@@ -1,9 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import Redis from 'ioredis';
 import { AppError } from '../utils/AppError';
 import logger from '../utils/logger';
-
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+import redis from '../utils/redis';
 
 export const idempotencyMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const idempotencyKey = req.headers['idempotency-key'];

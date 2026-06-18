@@ -52,7 +52,7 @@ app.get('/api/health', healthCheckLimiter, async (req: Request, res: Response) =
   try {
     await redis.ping();
     redisStatus = 'connected';
-  } catch (_err) {
+  } catch {
     redisStatus = 'error';
   }
 
@@ -60,7 +60,7 @@ app.get('/api/health', healthCheckLimiter, async (req: Request, res: Response) =
     // Use the shared prisma instance to test the connection
     await prisma.$queryRaw`SELECT 1`;
     dbStatus = 'connected';
-  } catch (_err) {
+  } catch {
     dbStatus = 'error';
   }
 
@@ -81,7 +81,7 @@ app.get('/', (req: Request, res: Response) => {
 try {
   const swaggerDocument = YAML.load(path.join(__dirname, "../../docs/api/openapi.yaml"));
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-} catch (error) {
+} catch {
   console.warn("Swagger spec could not be loaded. Please ensure docs/api/openapi.yaml exists.");
 }
 

@@ -279,7 +279,7 @@ describe('ShopSmart — Cart API Tests', () => {
     // Invalidate Redis cache
     try {
       await redis.del(`cart:${customerId}`);
-    } catch (_err) {
+    } catch {
       // silent
     }
   });

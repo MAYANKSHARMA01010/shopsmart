@@ -6,11 +6,11 @@ import type { Prisma } from '@prisma/client';
 
 // ─── Product with category relation ────────────────────────────────────────
 
-const productWithCategory = {
+export const productWithCategory = {
   include: { category: true },
 } satisfies Prisma.ProductDefaultArgs;
 
-type ProductWithCategory = Prisma.ProductGetPayload<typeof productWithCategory>;
+export type ProductWithCategory = Prisma.ProductGetPayload<typeof productWithCategory>;
 
 // ─── Service ────────────────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ class ProductService {
           logger.info('Serving products from cache');
           return JSON.parse(cached);
         }
-      } catch (_err) {
+      } catch {
         logger.warn('Redis Cache Error (Get): Continuing with Database');
       }
     }
@@ -64,7 +64,7 @@ class ProductService {
     if (!category && !search) {
       try {
         await redis.setex(this.CACHE_KEY, this.CACHE_TTL, JSON.stringify(products));
-      } catch (_err) {
+      } catch {
         // Silent — caching is best-effort
       }
     }
@@ -132,7 +132,7 @@ class ProductService {
       include: { category: true },
     });
 
-    try { await redis.del(this.CACHE_KEY); } catch (_err) { /* silent */ }
+    try { await redis.del(this.CACHE_KEY); } catch { /* silent */ }
 
     return product;
   }
@@ -177,7 +177,7 @@ class ProductService {
       include: { category: true },
     });
 
-    try { await redis.del(this.CACHE_KEY); } catch (_err) { /* silent */ }
+    try { await redis.del(this.CACHE_KEY); } catch { /* silent */ }
 
     return product;
   }
@@ -192,7 +192,7 @@ class ProductService {
     // Hard delete will fail if the product has been ordered (RESTRICT FK on OrderItem)
     await prisma.product.delete({ where: { id } });
 
-    try { await redis.del(this.CACHE_KEY); } catch (_err) { /* silent */ }
+    try { await redis.del(this.CACHE_KEY); } catch { /* silent */ }
 
     return { message: 'Product deleted successfully' };
   }

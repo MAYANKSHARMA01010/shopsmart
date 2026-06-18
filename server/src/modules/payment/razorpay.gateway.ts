@@ -44,7 +44,7 @@ export class RazorpayGateway implements PaymentGateway {
         gatewayOrderId: order.id,
         rawResponse: order as unknown as Record<string, unknown>,
       };
-    } catch (error: unknown) {
+    } catch {
       logger.error('payment.create_failed', { provider: 'razorpay', orderId: params.orderId });
       throw new AppError('Failed to create Razorpay order', 502);
     }
@@ -61,7 +61,7 @@ export class RazorpayGateway implements PaymentGateway {
       logger.info('payment.verify', { provider: 'razorpay', orderId: params.orderId, isValid });
       
       return isValid;
-    } catch (error: unknown) {
+    } catch {
       logger.error('payment.verify_failed', { provider: 'razorpay', orderId: params.orderId });
       return false;
     }
@@ -78,7 +78,7 @@ export class RazorpayGateway implements PaymentGateway {
         status: refundResponse.status,
         rawResponse: refundResponse as unknown as Record<string, unknown>,
       };
-    } catch (error: unknown) {
+    } catch {
       logger.error('payment.refund_failed', { provider: 'razorpay', paymentId });
       throw new AppError('Failed to process Razorpay refund', 502);
     }
@@ -93,7 +93,7 @@ export class RazorpayGateway implements PaymentGateway {
       });
       logger.info('payment.healthcheck', { provider: 'razorpay', status: 'healthy' });
       return true;
-    } catch (error: unknown) {
+    } catch {
       logger.error('payment.healthcheck', { provider: 'razorpay', status: 'unhealthy' });
       return false;
     }

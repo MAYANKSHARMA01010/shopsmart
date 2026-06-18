@@ -1,4 +1,4 @@
-import { Worker, Job } from 'bullmq';
+import { Worker } from 'bullmq';
 import redis from '../utils/redis';
 import prisma from '../config/database';
 import { OrderStatus, PaymentTransactionStatus } from '@prisma/client';
