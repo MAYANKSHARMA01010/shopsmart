@@ -95,7 +95,13 @@ apiClient.interceptors.response.use(
       }
     }
 
-    const message = error.response?.data?.message || error.message || "An unexpected error occurred";
+    let message = error.response?.data?.message || error.message || "An unexpected error occurred";
+    
+    // If it's a Zod validation error from the backend, show the specific field error
+    if (error.response?.data?.errors && Array.isArray(error.response.data.errors) && error.response.data.errors.length > 0) {
+      message = error.response.data.errors[0].message;
+    }
+
     return Promise.reject(new Error(message));
   }
 );
