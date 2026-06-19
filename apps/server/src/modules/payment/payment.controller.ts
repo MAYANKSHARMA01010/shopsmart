@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import { AppError } from '../../shared/utils/AppError';
 import { catchAsync } from '../../shared/utils/catchAsync';
 import { enqueueWebhook } from '../../queues/paymentWebhook.queue';
-import prisma from '../../shared/config/database';
+import { paymentRepository } from './payment.repository';
 import logger from '../../shared/utils/logger';
 
 export const verifyPayment = catchAsync(async (req: Request, res: Response) => {
@@ -46,15 +47,13 @@ export const handleRazorpayWebhook = catchAsync(async (req: Request, res: Respon
   }
 
   try {
-    await prisma.processedWebhook.create({
-      data: {
-        id: eventId,
-        gateway: 'RAZORPAY',
-        status: 'RECEIVED'
-      }
+    await paymentRepository.createProcessedWebhook({
+      id: eventId,
+      gateway: 'RAZORPAY',
+      status: 'RECEIVED'
     });
-  } catch (error: any) {
-    if (error.code === 'P2002') {
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       logger.info('Duplicate webhook skipped', { eventId });
       res.status(200).json({ success: true, message: 'Webhook already processed' });
       return;

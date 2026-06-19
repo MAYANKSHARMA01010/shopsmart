@@ -1,18 +1,8 @@
-import prisma from '../../shared/config/database';
 import { AppError } from '../../shared/utils/AppError';
 import redis from '../../shared/utils/redis';
 import logger from '../../shared/utils/logger';
-import type { Prisma } from '@prisma/client';
 import type { CategoryCreateInput, CategoryNode, CategoryUpdateInput } from './category.types';
-
-const categoryWithRelations = {
-  include: {
-    parent: true,
-    children: { orderBy: { name: 'asc' } },
-  },
-} satisfies Prisma.CategoryDefaultArgs;
-
-type CategoryWithRelations = Prisma.CategoryGetPayload<typeof categoryWithRelations>;
+import { categoryRepository, CategoryWithRelations } from './category.repository';
 
 class CategoryService {
   private readonly TREE_CACHE_KEY = 'categories:tree';
@@ -29,18 +19,7 @@ class CategoryService {
       logger.warn('Redis Cache Error (Get): Continuing with Database');
     }
 
-    const categories = await prisma.category.findMany({
-      where: { slug: { not: 'uncategorized' } },
-      orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        image: true,
-        parentId: true,
-      },
-    });
+    const categories = await categoryRepository.getAllCategories();
 
     const nodes = new Map<string, CategoryNode>();
     categories.forEach((category) => {
@@ -76,10 +55,7 @@ class CategoryService {
   }
 
   async getCategoryById(id: string): Promise<CategoryWithRelations> {
-    const category = await prisma.category.findUnique({
-      where: { id },
-      include: categoryWithRelations.include,
-    });
+    const category = await categoryRepository.findCategoryById(id);
 
     if (!category) {
       throw new AppError('Category not found', 404);
@@ -98,15 +74,12 @@ class CategoryService {
     const baseSlug = input.slug ?? this.generateSlug(input.name);
     const slug = await this.ensureUniqueSlug(baseSlug);
 
-    const category = await prisma.category.create({
-      data: {
-        name: input.name,
-        slug,
-        description: input.description ?? null,
-        image: input.image ?? null,
-        parentId: input.parentId ?? null,
-      },
-      include: categoryWithRelations.include,
+    const category = await categoryRepository.createCategory({
+      name: input.name,
+      slug,
+      description: input.description ?? null,
+      image: input.image ?? null,
+      ...(input.parentId ? { parent: { connect: { id: input.parentId } } } : {})
     });
 
     await this.invalidateCategoryCache();
@@ -115,7 +88,7 @@ class CategoryService {
   }
 
   async updateCategory(id: string, input: CategoryUpdateInput): Promise<CategoryWithRelations> {
-    const existing = await prisma.category.findUnique({ where: { id } });
+    const existing = await categoryRepository.findCategoryById(id);
     if (!existing) {
       throw new AppError('Category not found', 404);
     }
@@ -137,16 +110,16 @@ class CategoryService {
       slug = await this.ensureUniqueSlug(input.slug, id);
     }
 
-    const category = await prisma.category.update({
-      where: { id },
-      data: {
-        ...(input.name !== undefined && { name: input.name }),
-        ...(slug !== undefined && { slug }),
-        ...(input.description !== undefined && { description: input.description }),
-        ...(input.image !== undefined && { image: input.image }),
-        ...(input.parentId !== undefined && { parentId: input.parentId }),
-      },
-      include: categoryWithRelations.include,
+    const category = await categoryRepository.updateCategory(id, {
+      ...(input.name !== undefined && { name: input.name }),
+      ...(slug !== undefined && { slug }),
+      ...(input.description !== undefined && { description: input.description }),
+      ...(input.image !== undefined && { image: input.image }),
+      ...(input.parentId === null 
+        ? { parent: { disconnect: true } } 
+        : input.parentId !== undefined 
+          ? { parent: { connect: { id: input.parentId } } } 
+          : {}),
     });
 
     await this.invalidateCategoryCache();
@@ -155,31 +128,31 @@ class CategoryService {
   }
 
   async deleteCategory(id: string): Promise<{ message: string }> {
-    const existing = await prisma.category.findUnique({ where: { id } });
+    const existing = await categoryRepository.findCategoryById(id);
     if (!existing) {
       throw new AppError('Category not found', 404);
     }
 
-    const productCount = await prisma.product.count({ where: { categoryId: id } });
+    const productCount = await categoryRepository.countProductsByCategoryId(id);
     if (productCount > 0) {
       throw new AppError('Cannot delete category with existing products', 409);
     }
 
-    await prisma.category.delete({ where: { id } });
+    await categoryRepository.deleteCategory(id);
     await this.invalidateCategoryCache();
 
     return { message: 'Category deleted successfully' };
   }
 
   private async ensureParentExists(parentId: string): Promise<void> {
-    const parent = await prisma.category.findUnique({ where: { id: parentId } });
+    const parent = await categoryRepository.findCategoryById(parentId);
     if (!parent) {
       throw new AppError('Parent category not found', 400);
     }
   }
 
   private async ensureUniqueName(name: string, excludeId?: string): Promise<void> {
-    const existing = await prisma.category.findUnique({ where: { name } });
+    const existing = await categoryRepository.findCategoryByName(name);
     if (existing && existing.id !== excludeId) {
       throw new AppError('Category name already exists', 409);
     }
@@ -188,7 +161,7 @@ class CategoryService {
   private async ensureUniqueSlug(slug: string, excludeId?: string): Promise<string> {
     let candidate = slug;
     const hasConflict = async (value: string) => {
-      const existing = await prisma.category.findUnique({ where: { slug: value } });
+      const existing = await categoryRepository.findCategoryBySlug(value);
       return existing && existing.id !== excludeId;
     };
 

@@ -1,10 +1,10 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import prisma from '../../shared/config/database';
 import { AppError } from '../../shared/utils/AppError';
 import { JwtPayload } from './auth.types';
 import { Role } from '@prisma/client';
+import { authRepository } from './auth.repository';
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'default-access-secret';
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'default-refresh-secret';
@@ -16,7 +16,7 @@ const hashToken = (token: string) => crypto.createHash('sha256').update(token).d
 class AuthService {
   async register(data: Record<string, string>, deviceInfo?: string) {
     // Check if email already exists
-    const existingEmail = await prisma.user.findUnique({ where: { email: data.email } });
+    const existingEmail = await authRepository.findUserByEmail(data.email);
     if (existingEmail) {
       throw new AppError('Email is already registered', 409);
     }
@@ -30,7 +30,7 @@ class AuthService {
       let isUnique = false;
       let count = 0;
       while (!isUnique && count < 10) {
-        const existing = await prisma.user.findUnique({ where: { username } });
+        const existing = await authRepository.findUserByUsername(username);
         if (!existing) {
           isUnique = true;
         } else {
@@ -40,7 +40,7 @@ class AuthService {
         }
       }
     } else {
-      const existingUsername = await prisma.user.findUnique({ where: { username } });
+      const existingUsername = await authRepository.findUserByUsername(username);
       if (existingUsername) {
         throw new AppError('Username is already taken', 409);
       }
@@ -51,24 +51,12 @@ class AuthService {
     const passwordHash = await bcrypt.hash(data.password, saltRounds);
 
     // Create user and cart in transaction
-    const user = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          name: data.name,
-          email: data.email,
-          username,
-          password: passwordHash,
-          phone: data.phone,
-        },
-      });
-
-      await tx.cart.create({
-        data: {
-          userId: newUser.id,
-        },
-      });
-
-      return newUser;
+    const user = await authRepository.createUserWithCart({
+      name: data.name,
+      email: data.email,
+      username,
+      password: passwordHash,
+      phone: data.phone,
     });
 
     const tokens = this.generateTokenPair(user);
@@ -82,14 +70,7 @@ class AuthService {
 
   async login(data: Record<string, string>, deviceInfo?: string) {
     // Find user by email or username
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: data.identifier },
-          { username: data.identifier },
-        ],
-      },
-    });
+    const user = await authRepository.findUserByIdentifier(data.identifier);
 
     if (!user) {
       throw new AppError('Invalid email/username or password', 401);
@@ -118,20 +99,14 @@ class AuthService {
     }
 
     const hashed = hashToken(rawRefreshToken);
-    const tokenRecord = await prisma.refreshToken.findUnique({
-      where: { token: hashed },
-      include: { user: true },
-    });
+    const tokenRecord = await authRepository.findRefreshToken(hashed);
 
     if (!tokenRecord || tokenRecord.isRevoked || tokenRecord.expiresAt < new Date()) {
       throw new AppError('Unauthorized: Invalid or expired refresh token', 401);
     }
 
     // Rotate refresh token (revoke the old one)
-    await prisma.refreshToken.update({
-      where: { id: tokenRecord.id },
-      data: { isRevoked: true },
-    });
+    await authRepository.revokeRefreshTokenById(tokenRecord.id);
 
     const tokens = this.generateTokenPair(tokenRecord.user);
     await this.saveRefreshToken(tokenRecord.userId, tokens.refreshToken, deviceInfo);
@@ -142,17 +117,14 @@ class AuthService {
   async logout(rawRefreshToken: string) {
     const hashed = hashToken(rawRefreshToken);
     try {
-      await prisma.refreshToken.update({
-        where: { token: hashed },
-        data: { isRevoked: true },
-      });
+      await authRepository.revokeRefreshTokenByToken(hashed);
     } catch {
       // If the token is not in DB or already revoked, fail gracefully for logout
     }
   }
 
   async getUserById(id: string) {
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await authRepository.findUserById(id);
     if (!user) {
       throw new AppError('User not found', 404);
     }
@@ -162,26 +134,18 @@ class AuthService {
   async updateProfile(id: string, data: { name?: string; username?: string; phone?: string | null; avatar?: string | null; gender?: string | null }) {
     // If username is changing, check uniqueness
     if (data.username) {
-      const existing = await prisma.user.findFirst({
-        where: {
-          username: data.username,
-          NOT: { id },
-        },
-      });
+      const existing = await authRepository.findUserByUsernameExcept(data.username, id);
       if (existing) {
         throw new AppError('Username is already taken', 409);
       }
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data: {
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.username !== undefined && { username: data.username }),
-        ...(data.phone !== undefined && { phone: data.phone }),
-        ...(data.avatar !== undefined && { avatar: data.avatar }),
-        ...(data.gender !== undefined && { gender: data.gender }),
-      },
+    const updatedUser = await authRepository.updateUser(id, {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.username !== undefined && { username: data.username }),
+      ...(data.phone !== undefined && { phone: data.phone }),
+      ...(data.avatar !== undefined && { avatar: data.avatar }),
+      ...(data.gender !== undefined && { gender: data.gender }),
     });
 
     return this.sanitizeUser(updatedUser);
@@ -213,14 +177,7 @@ class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    await prisma.refreshToken.create({
-      data: {
-        token: hashed,
-        userId,
-        expiresAt,
-        deviceInfo: deviceInfo || null,
-      },
-    });
+    await authRepository.saveRefreshToken(userId, hashed, expiresAt, deviceInfo);
   }
 
   private sanitizeUser(user: Record<string, unknown>) {

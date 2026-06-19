@@ -5,8 +5,9 @@ import { OrderStatus, PaymentTransactionStatus } from '@prisma/client';
 import { OrderStateMachine } from '../modules/checkout/order.state-machine';
 import logger from '../shared/utils/logger';
 
-export const processPaymentWebhookJob = async (job: { data: any }) => {
-  const { eventId, gateway, payload } = job.data;
+export const processPaymentWebhookJob = async (job: { data: { eventId: string; gateway: string; payload: unknown } }) => {
+  const { eventId, gateway, payload: rawPayload } = job.data;
+  const payload = rawPayload as any;
   
   if (gateway !== 'RAZORPAY') return;
   

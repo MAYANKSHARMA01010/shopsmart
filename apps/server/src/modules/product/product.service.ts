@@ -1,16 +1,7 @@
-import prisma from '../../shared/config/database';
 import { AppError } from '../../shared/utils/AppError';
 import redis from '../../shared/utils/redis';
-import logger from '../../shared/utils/logger';
 import type { Prisma } from '@prisma/client';
-
-// ─── Product with category relation ────────────────────────────────────────
-
-export const productWithCategory = {
-  include: { category: true },
-} satisfies Prisma.ProductDefaultArgs;
-
-export type ProductWithCategory = Prisma.ProductGetPayload<typeof productWithCategory>;
+import { productRepository, ProductWithCategoryPayload as ProductWithCategory } from './product.repository';
 
 // ─── Service ────────────────────────────────────────────────────────────────
 
@@ -84,16 +75,12 @@ class ProductService {
     }
 
     // Execute query with pagination
-    const [products, total] = await prisma.$transaction([
-      prisma.product.findMany({
-        where,
-        include: { category: true },
-        orderBy,
-        skip: (pageNum - 1) * limitNum,
-        take: limitNum,
-      }),
-      prisma.product.count({ where }),
-    ]);
+    const [products, total] = await productRepository.findProductsWithPagination(
+      where,
+      orderBy,
+      (pageNum - 1) * limitNum,
+      limitNum
+    );
 
     return {
       data: products,
@@ -105,10 +92,7 @@ class ProductService {
   }
 
   async getProductById(id: string): Promise<ProductWithCategory> {
-    const product = await prisma.product.findUnique({
-      where: { id },
-      include: { category: true },
-    });
+    const product = await productRepository.findProductById(id);
 
     if (!product) {
       throw new AppError('Product not found', 404);
@@ -118,10 +102,7 @@ class ProductService {
   }
 
   async getProductBySlug(slug: string): Promise<ProductWithCategory> {
-    const product = await prisma.product.findUnique({
-      where: { slug },
-      include: { category: true },
-    });
+    const product = await productRepository.findProductBySlug(slug);
 
     if (!product) {
       throw new AppError('Product not found', 404);
@@ -143,25 +124,22 @@ class ProductService {
     slug?: string;
   }): Promise<ProductWithCategory> {
     // Verify category exists
-    const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+    const category = await productRepository.findCategoryById(data.categoryId);
     if (!category) {
       throw new AppError('Category not found', 400);
     }
 
-    const product = await prisma.product.create({
-      data: {
-        name: data.name,
-        slug: data.slug ?? this.generateSlug(data.name),
-        description: data.description ?? null,
-        basePrice: data.basePrice,
-        comparePrice: data.comparePrice ?? null,
-        stock: data.stock ?? 0,
-        sku: data.sku ?? null,
-        images: data.images ?? [],
-        isVisible: data.isVisible ?? true,
-        categoryId: data.categoryId,
-      },
-      include: { category: true },
+    const product = await productRepository.createProduct({
+      name: data.name,
+      slug: data.slug ?? this.generateSlug(data.name),
+      description: data.description ?? null,
+      basePrice: data.basePrice,
+      comparePrice: data.comparePrice ?? null,
+      stock: data.stock ?? 0,
+      sku: data.sku ?? null,
+      images: data.images ?? [],
+      isVisible: data.isVisible ?? true,
+      category: { connect: { id: data.categoryId } },
     });
 
     try { await redis.del(this.CACHE_KEY); } catch { /* silent */ }
@@ -183,30 +161,26 @@ class ProductService {
       categoryId: string;
     }>
   ): Promise<ProductWithCategory> {
-    const existing = await prisma.product.findUnique({ where: { id } });
+    const existing = await productRepository.findProductById(id);
     if (!existing) {
       throw new AppError('Product not found', 404);
     }
 
     if (data.categoryId) {
-      const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+      const category = await productRepository.findCategoryById(data.categoryId);
       if (!category) throw new AppError('Category not found', 400);
     }
 
-    const product = await prisma.product.update({
-      where: { id },
-      data: {
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.basePrice !== undefined && { basePrice: data.basePrice }),
-        ...(data.comparePrice !== undefined && { comparePrice: data.comparePrice }),
-        ...(data.stock !== undefined && { stock: data.stock }),
-        ...(data.sku !== undefined && { sku: data.sku }),
-        ...(data.images !== undefined && { images: data.images }),
-        ...(data.isVisible !== undefined && { isVisible: data.isVisible }),
-        ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
-      },
-      include: { category: true },
+    const product = await productRepository.updateProduct(id, {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.basePrice !== undefined && { basePrice: data.basePrice }),
+      ...(data.comparePrice !== undefined && { comparePrice: data.comparePrice }),
+      ...(data.stock !== undefined && { stock: data.stock }),
+      ...(data.sku !== undefined && { sku: data.sku }),
+      ...(data.images !== undefined && { images: data.images }),
+      ...(data.isVisible !== undefined && { isVisible: data.isVisible }),
+      ...(data.categoryId !== undefined && { category: { connect: { id: data.categoryId } } }),
     });
 
     try { await redis.del(this.CACHE_KEY); } catch { /* silent */ }
@@ -215,14 +189,14 @@ class ProductService {
   }
 
   async deleteProduct(id: string): Promise<{ message: string }> {
-    const existing = await prisma.product.findUnique({ where: { id } });
+    const existing = await productRepository.findProductById(id);
     if (!existing) {
       throw new AppError('Product not found', 404);
     }
 
     // Soft-delete preferred: set isVisible = false
     // Hard delete will fail if the product has been ordered (RESTRICT FK on OrderItem)
-    await prisma.product.delete({ where: { id } });
+    await productRepository.deleteProduct(id);
 
     try { await redis.del(this.CACHE_KEY); } catch { /* silent */ }
 

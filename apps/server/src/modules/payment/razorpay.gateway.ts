@@ -88,8 +88,8 @@ export class RazorpayGateway implements PaymentGateway {
     try {
       // Razorpay has no /health endpoint, fetching an invalid order ID ensures credentials work
       // and network connects. If auth fails, it throws a 401 error. 
-      await this.razorpay.orders.fetch('dummy_order_to_test_auth').catch((err: any) => {
-        if (err?.statusCode === 401) throw err;
+      await this.razorpay.orders.fetch('dummy_order_to_test_auth').catch((err: unknown) => {
+        if ((err as any)?.statusCode === 401) throw err;
       });
       logger.info('payment.healthcheck', { provider: 'razorpay', status: 'healthy' });
       return true;

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import crypto from 'crypto';
 import app from '../src/server';
 import prisma from '../src/shared/config/database';
+import { Prisma } from '@prisma/client';
 import { enqueueWebhook } from '../src/queues/paymentWebhook.queue';
 
 vi.mock('../src/queues/paymentWebhook.queue', () => ({
@@ -61,7 +62,12 @@ describe('Webhook API', () => {
     const payload = { id: 'evt_dup', event: 'payment.captured' };
     const signature = generateSignature(payload);
     
-    (prisma.processedWebhook.create as any).mockRejectedValue({ code: 'P2002' }); // Simulate Prisma Unique Constraint Error
+    const prismaError = new Prisma.PrismaClientKnownRequestError('Duplicate', {
+      code: 'P2002',
+      clientVersion: '6.0.0',
+      meta: { target: ['id'] },
+    });
+    (prisma.processedWebhook.create as any).mockRejectedValue(prismaError);
 
     const res = await request(app)
       .post('/api/v1/payment/webhook')

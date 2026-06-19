@@ -1,5 +1,6 @@
-import { Queue } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 import redis from '../shared/utils/redis';
+import logger from '../shared/utils/logger';
 
 export const paymentWebhookQueue = new Queue('payment-webhook', { 
   connection: redis 
@@ -7,11 +8,11 @@ export const paymentWebhookQueue = new Queue('payment-webhook', {
 
 paymentWebhookQueue.on('error', (err) => {
   if ((err as any).code !== 'ECONNREFUSED') {
-    console.error('paymentWebhookQueue error:', err.message);
+    logger.error('paymentWebhookQueue error:', { error: err.message });
   }
 });
 
-export const enqueueWebhook = async (eventId: string, gateway: string, payload: any) => {
+export const enqueueWebhook = async (eventId: string, gateway: string, payload: unknown) => {
   await paymentWebhookQueue.add(
     'process-webhook',
     { eventId, gateway, payload },

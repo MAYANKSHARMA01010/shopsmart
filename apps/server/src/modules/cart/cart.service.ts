@@ -1,9 +1,9 @@
-import prisma from '../../shared/config/database';
 import { AppError } from '../../shared/utils/AppError';
 import redis from '../../shared/utils/redis';
 import logger from '../../shared/utils/logger';
 import { Prisma } from '@prisma/client';
 import { CartWithItems, CartResponseDto } from './cart.types';
+import { cartRepository } from './cart.repository';
 
 class CartService {
   private readonly CACHE_TTL = 3600; // 1 hour
@@ -24,21 +24,7 @@ class CartService {
    * Safe helper to retrieve a user's cart, creating it on-demand if missing.
    */
   async getOrCreateCart(userId: string, tx?: Prisma.TransactionClient): Promise<CartWithItems> {
-    const client = tx || prisma;
-    const cart = await client.cart.upsert({
-      where: { userId },
-      update: {},
-      create: { userId },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
-
-    return cart as CartWithItems;
+    return cartRepository.getOrCreateCart(userId, tx);
   }
 
   /**
@@ -72,9 +58,7 @@ class CartService {
    * Adds an item to the cart. Validates product existence, visibility, and stock.
    */
   async addItem(userId: string, productId: string, quantity: number): Promise<CartResponseDto> {
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    });
+    const product = await cartRepository.getProductById(productId);
 
     if (!product) {
       throw new AppError('Product not found', 404);
@@ -105,22 +89,7 @@ class CartService {
       throw new AppError(`Cannot add requested quantity. Only ${product.stock} items in stock.`, 400);
     }
 
-    await prisma.cartItem.upsert({
-      where: {
-        cartId_productId: {
-          cartId: cart.id,
-          productId,
-        },
-      },
-      update: {
-        quantity: targetQuantity,
-      },
-      create: {
-        cartId: cart.id,
-        productId,
-        quantity: targetQuantity,
-      },
-    });
+    await cartRepository.upsertCartItem(cart.id, productId, targetQuantity);
 
     await this.invalidateCache(userId);
 
@@ -142,9 +111,7 @@ class CartService {
       throw new AppError('Maximum quantity per item in a cart is 10.', 400);
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    });
+    const product = await cartRepository.getProductById(productId);
 
     if (!product || !product.isVisible) {
       throw new AppError('Product is currently unavailable', 400);
@@ -154,14 +121,7 @@ class CartService {
       throw new AppError(`Cannot update quantity. Only ${product.stock} items in stock.`, 400);
     }
 
-    await prisma.cartItem.update({
-      where: {
-        id: existingItem.id,
-      },
-      data: {
-        quantity,
-      },
-    });
+    await cartRepository.updateCartItemQuantity(existingItem.id, quantity);
 
     await this.invalidateCache(userId);
 
@@ -179,11 +139,7 @@ class CartService {
       throw new AppError('Item not found in cart', 404);
     }
 
-    await prisma.cartItem.delete({
-      where: {
-        id: existingItem.id,
-      },
-    });
+    await cartRepository.removeCartItem(existingItem.id);
 
     await this.invalidateCache(userId);
 
@@ -195,11 +151,7 @@ class CartService {
    */
   async clearCart(userId: string): Promise<void> {
     const cart = await this.getOrCreateCart(userId);
-    await prisma.cartItem.deleteMany({
-      where: {
-        cartId: cart.id,
-      },
-    });
+    await cartRepository.clearCartItems(cart.id);
     await this.invalidateCache(userId);
   }
 
@@ -212,15 +164,11 @@ class CartService {
       return this.getCart(userId);
     }
 
-    await prisma.$transaction(async (tx) => {
+    await cartRepository.executeTransaction(async (tx) => {
       const cart = await this.getOrCreateCart(userId, tx);
 
       const productIds = guestItems.map((item) => item.productId);
-      const products = await tx.product.findMany({
-        where: {
-          id: { in: productIds },
-        },
-      });
+      const products = await cartRepository.getProductsByIds(productIds, tx);
 
       const productMap = new Map(products.map((p) => [p.id, p]));
 
@@ -256,20 +204,17 @@ class CartService {
         mergedItems = mergedItems.slice(0, 50);
       }
 
-      await tx.cartItem.deleteMany({
-        where: {
-          cartId: cart.id,
-        },
-      });
+      await cartRepository.clearCartItems(cart.id, tx);
 
       if (mergedItems.length > 0) {
-        await tx.cartItem.createMany({
-          data: mergedItems.map((item) => ({
+        await cartRepository.createManyCartItems(
+          mergedItems.map((item) => ({
             cartId: cart.id,
             productId: item.productId,
             quantity: item.quantity,
           })),
-        });
+          tx
+        );
       }
     });
 

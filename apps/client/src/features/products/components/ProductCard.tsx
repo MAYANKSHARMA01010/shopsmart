@@ -1,5 +1,6 @@
 import { formatPrice } from "../types/productSchema";
 import type { Product } from "../types/productSchema";
+import { WishlistButton } from "../../wishlist/components/WishlistButton";
 
 interface ProductCardProps {
   product: Product;
@@ -64,6 +65,9 @@ export function ProductCard({ product, onDelete, deleting }: ProductCardProps) {
         ) : (
           <IconProductPlaceholder />
         )}
+        <div style={{ position: "absolute", top: "12px", right: "12px", zIndex: 10 }}>
+          <WishlistButton product={product} />
+        </div>
       </div>
 
       {/* Body */}

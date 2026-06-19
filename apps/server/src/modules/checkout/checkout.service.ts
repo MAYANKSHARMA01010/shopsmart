@@ -2,7 +2,7 @@ import { Prisma, OrderStatus, PaymentGatewayProvider } from '@prisma/client';
 import { AppError } from '../../shared/utils/AppError';
 import { PaymentService } from '../payment/payment.service';
 import logger from '../../shared/utils/logger';
-import prisma from '../../shared/config/database'; 
+import { checkoutRepository } from './checkout.repository';
 
 export interface OrderContext {
   userId: string;
@@ -16,19 +16,14 @@ export class CheckoutService {
   async initializeCheckout(context: OrderContext) {
     const { userId, addressId, gatewayProvider, couponCode, notes } = context;
     // 1. Validate Cart
-    const cart = await prisma.cart.findUnique({
-      where: { userId },
-      include: { items: { include: { product: true } } }
-    });
+    const cart = await checkoutRepository.findCartByUserId(userId);
 
     if (!cart || cart.items.length === 0) {
       throw new AppError('Cart is empty', 400);
     }
 
     // 2. Validate Address
-    const address = await prisma.address.findUnique({
-      where: { id: addressId }
-    });
+    const address = await checkoutRepository.findAddressById(addressId);
 
     if (!address || address.userId !== userId) {
       throw new AppError('Invalid address', 400);
@@ -52,7 +47,7 @@ export class CheckoutService {
 
     let discountAmount = new Prisma.Decimal(0);
     if (couponCode) {
-      const coupon = await prisma.coupon.findUnique({ where: { code: couponCode } });
+      const coupon = await checkoutRepository.findCouponByCode(couponCode);
       if (coupon && coupon.isActive && coupon.startDate <= new Date() && coupon.endDate >= new Date()) {
         if (coupon.type === 'FLAT') {
           discountAmount = coupon.value;
@@ -85,11 +80,9 @@ export class CheckoutService {
     const sortedProductIds = cartItems.map(i => i.productId).sort();
 
     // 5. BEGIN TRANSACTION
-    const orderData = await prisma.$transaction(async (tx) => {
+    const orderData = await checkoutRepository.executeTransaction(async (tx) => {
       // 6. SELECT FOR UPDATE
-      const lockedProducts = await tx.$queryRaw<{ id: string; stock: number }[]>(
-        Prisma.sql`SELECT id, stock FROM "products" WHERE id IN (${Prisma.join(sortedProductIds)}) FOR UPDATE`
-      );
+      const lockedProducts = await checkoutRepository.lockProductsForUpdate(sortedProductIds, tx);
 
       const stockMap = new Map<string, number>();
       lockedProducts.forEach(p => stockMap.set(p.id, p.stock));
@@ -100,56 +93,47 @@ export class CheckoutService {
         if (currentStock === undefined || currentStock < item.quantity) {
           throw new AppError(`Insufficient stock for product ${item.productName}`, 400);
         }
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } }
-        });
+        await checkoutRepository.decrementProductStock(item.productId, item.quantity, tx);
       }
 
       // 8. Create Pending Order
       const initialStatus = OrderStatus.PENDING;
       
-      const order = await tx.order.create({
-        data: {
-          userId,
-          addressId,
-          status: initialStatus,
-          subtotal,
-          discountAmount,
-          taxAmount,
-          shippingAmount,
-          totalAmount,
-          couponCode,
-          notes,
-          shippingAddressSnapshot: address as unknown as Prisma.InputJsonValue,
-          billingAddressSnapshot: address as unknown as Prisma.InputJsonValue,
-          items: {
-            create: cartItems.map(item => ({
-              productId: item.productId,
-              productName: item.productName,
-              productSku: item.productSku,
-              quantity: item.quantity,
-              priceAtPurchase: item.priceAtPurchase
-            }))
-          }
+      const order = await checkoutRepository.createOrder({
+        user: { connect: { id: userId } },
+        address: { connect: { id: addressId } },
+        status: initialStatus,
+        subtotal,
+        discountAmount,
+        taxAmount,
+        shippingAmount,
+        totalAmount,
+        couponCode,
+        notes,
+        shippingAddressSnapshot: address as unknown as Prisma.InputJsonValue,
+        billingAddressSnapshot: address as unknown as Prisma.InputJsonValue,
+        items: {
+          create: cartItems.map(item => ({
+            productId: item.productId,
+            productName: item.productName,
+            productSku: item.productSku,
+            quantity: item.quantity,
+            priceAtPurchase: item.priceAtPurchase
+          }))
         }
-      });
+      }, tx);
 
       // 9. Audit Log
-      await tx.orderAuditLog.create({
-        data: {
-          orderId: order.id,
-          action: 'ORDER_CREATED',
-          newState: initialStatus,
-          actorId: userId,
-          actorType: 'USER'
-        }
-      });
+      await checkoutRepository.createOrderAuditLog({
+        order: { connect: { id: order.id } },
+        action: 'ORDER_CREATED',
+        newState: initialStatus,
+        actorId: userId,
+        actorType: 'USER'
+      }, tx);
 
       // 10. Clear Cart
-      await tx.cartItem.deleteMany({
-        where: { cartId: cart.id }
-      });
+      await checkoutRepository.clearCartItems(cart.id, tx);
 
       return order;
     });
@@ -162,15 +146,13 @@ export class CheckoutService {
       currency: 'INR'
     });
 
-    const paymentRecord = await prisma.payment.create({
-      data: {
-        orderId: orderData.id,
-        gateway: gatewayProvider,
-        gatewayOrderId: paymentResponse.gatewayOrderId,
-        amount: orderData.totalAmount,
-        currency: 'INR',
-        rawResponse: paymentResponse.rawResponse as Prisma.InputJsonValue
-      }
+    const paymentRecord = await checkoutRepository.createPaymentRecord({
+      order: { connect: { id: orderData.id } },
+      gateway: gatewayProvider,
+      gatewayOrderId: paymentResponse.gatewayOrderId,
+      amount: orderData.totalAmount,
+      currency: 'INR',
+      rawResponse: paymentResponse.rawResponse as Prisma.InputJsonValue
     });
 
     logger.info('checkout.initialized', { orderId: orderData.id, userId });

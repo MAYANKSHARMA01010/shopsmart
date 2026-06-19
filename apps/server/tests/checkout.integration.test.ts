@@ -1,27 +1,43 @@
 import request from 'supertest';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import jwt from 'jsonwebtoken';
 import { Role } from '@prisma/client';
 import app from '../src/server';
 import prisma from '../src/shared/config/database';
-import redis from '../src/shared/utils/redis';
+
+// Redis is mocked with an in-memory store so the idempotency middleware
+// has a working cache without a real Redis connection.
+// vi.hoisted is required because vi.mock is hoisted before variable declarations.
+const { redisStore } = vi.hoisted(() => ({ redisStore: new Map<string, string>() }));
+
+vi.mock('../src/shared/utils/redis', () => ({
+  default: {
+    status: 'ready',
+    get: vi.fn(async (key: string) => redisStore.get(key) ?? null),
+    set: vi.fn(async (key: string, value: string) => { redisStore.set(key, value); return 'OK'; }),
+    del: vi.fn(async (...keys: string[]) => { keys.forEach((k: string) => redisStore.delete(k)); return keys.length; }),
+    keys: vi.fn(async (pattern: string) => {
+      const prefix = pattern.replace('*', '');
+      return [...redisStore.keys()].filter((k: string) => k.startsWith(prefix));
+    }),
+    quit: vi.fn(async () => 'OK'),
+  },
+}));
+
+vi.mock('razorpay', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    orders: {
+      create: vi.fn().mockResolvedValue({ id: 'order_mocked_123', status: 'created' }),
+      fetch: vi.fn(),
+    },
+    payments: {
+      refund: vi.fn(),
+    },
+  })),
+}));
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'default-access-secret';
 
-import { vi } from 'vitest';
-vi.mock('razorpay', () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      orders: {
-        create: vi.fn().mockResolvedValue({ id: 'order_mocked_123', status: 'created' }),
-        fetch: vi.fn(),
-      },
-      payments: {
-        refund: vi.fn(),
-      }
-    }))
-  };
-});
 describe('ShopSmart — Checkout Integration Tests', () => {
   const suffix = Math.random().toString(36).substring(2, 8);
   let customerId = '';
@@ -29,6 +45,11 @@ describe('ShopSmart — Checkout Integration Tests', () => {
   let addressId = '';
   let product1Id = '';
   let cartId = '';
+
+  beforeEach(() => {
+    // Clear in-memory redis store between tests so idempotency keys don't bleed
+    redisStore.clear();
+  });
 
   beforeAll(async () => {
     // 1. Create a customer
@@ -93,7 +114,6 @@ describe('ShopSmart — Checkout Integration Tests', () => {
   });
 
   afterAll(async () => {
-    // Clean up
     await prisma.cartItem.deleteMany({ where: { cartId } });
     await prisma.cart.deleteMany({ where: { id: cartId } });
     await prisma.orderAuditLog.deleteMany({ where: { actorId: customerId } });
@@ -104,10 +124,7 @@ describe('ShopSmart — Checkout Integration Tests', () => {
     await prisma.product.delete({ where: { id: product1Id } });
     await prisma.category.deleteMany({ where: { name: `Cat ${suffix}` } });
     await prisma.user.delete({ where: { id: customerId } });
-    
-    // Clear redis cache
-    const keys = await redis.keys('shopsmart:idempotency:v1:*');
-    if (keys.length > 0) await redis.del(...keys);
+    // Redis store is in-memory; no cleanup needed
   });
 
   it('fails if Idempotency-Key header is missing', async () => {
@@ -148,7 +165,7 @@ describe('ShopSmart — Checkout Integration Tests', () => {
     const c = await prisma.cart.findUnique({ where: { id: cartId }, include: { items: true } });
     expect(c?.items.length).toBe(0);
 
-    // Test idempotency hit
+    // Test idempotency: same key must return cached response (same order ID)
     const res2 = await request(app)
       .post('/api/v1/checkout/initialize')
       .set('Authorization', `Bearer ${customerToken}`)

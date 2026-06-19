@@ -13,7 +13,11 @@ export const validateVerifyBody = (req: Request, res: Response, next: NextFuncti
   try {
     req.body = verifyPaymentSchema.shape.body.parse(req.body);
     next();
-  } catch (error: any) {
-    res.status(400).json({ success: false, message: 'Invalid payload', errors: error.errors });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ success: false, message: 'Invalid payload', errors: error.errors });
+    } else {
+      res.status(400).json({ success: false, message: 'Invalid payload' });
+    }
   }
 };

@@ -12,6 +12,7 @@ import categoryRoutes from './modules/categories/category.routes';
 import cartRoutes from './modules/cart/cart.routes';
 import checkoutRoutes from './modules/checkout/checkout.routes';
 import paymentRoutes from './modules/payment/payment.routes';
+import wishlistRoutes from './modules/wishlist/wishlist.routes';
 import { errorHandler, routeNotFoundHandler } from './shared/middleware/errorMiddleware';
 import corsOptions from './shared/config/cors';
 import redis from './shared/utils/redis';
@@ -91,6 +92,7 @@ app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/cart', cartRoutes);
 app.use('/api/v1/checkout', checkoutRoutes);
 app.use('/api/v1/payment', paymentRoutes);
+app.use('/api/v1/wishlist', wishlistRoutes);
 
 // Error Handling
 app.use(routeNotFoundHandler);
