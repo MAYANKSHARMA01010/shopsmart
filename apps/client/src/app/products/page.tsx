@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useAuth } from "@/features/auth/AuthContext";
 import { useProducts } from "../../features/products/hooks/useProducts";
 import type { ProductData } from "../../features/products/types/productSchema";
 import { formatPrice } from "../../features/products/types/productSchema";
@@ -163,6 +164,9 @@ function ProductsPageContent() {
     page: urlPage,
   });
 
+  const { user } = useAuth();
+  const canAddProduct = user && ["SUPER_ADMIN", "ADMIN", "VENDOR"].includes(user.role);
+
   // Calculate stats from loaded page (for enterprise logic, stats might be separate query)
   const totalValue = products.reduce(
     (sum, p) => sum + parseFloat(formatPrice(p.basePrice)) * p.stock,
@@ -190,15 +194,17 @@ function ProductsPageContent() {
           </p>
         </div>
 
-        <button
-          id="add-product-toggle"
-          type="button"
-          className={`btn ${showForm ? "btn-secondary" : "btn-primary"}`}
-          onClick={() => setShowForm((v) => !v)}
-          aria-expanded={showForm}
-        >
-          {showForm ? <><IconMinus />Cancel</> : <><IconPlus />Add Product</>}
-        </button>
+        {canAddProduct && (
+          <button
+            id="add-product-toggle"
+            type="button"
+            className={`btn ${showForm ? "btn-secondary" : "btn-primary"}`}
+            onClick={() => setShowForm((v) => !v)}
+            aria-expanded={showForm}
+          >
+            {showForm ? <><IconMinus />Cancel</> : <><IconPlus />Add Product</>}
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -322,20 +328,22 @@ function ProductsPageContent() {
             <>
               <h3>No products yet</h3>
               <p>Create your first product to start managing your inventory.</p>
-              <div className="empty-state-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    setShowForm(true);
-                    setTimeout(() => {
-                      document.getElementById("add")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }, 100);
-                  }}
-                >
-                  Add Product
-                </button>
-              </div>
+              {canAddProduct && (
+                <div className="empty-state-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setShowForm(true);
+                      setTimeout(() => {
+                        document.getElementById("add")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }, 100);
+                    }}
+                  >
+                    Add Product
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -378,7 +386,7 @@ function ProductsPageContent() {
       )}
 
       {/* Add Product form */}
-      {showForm && (
+      {showForm && canAddProduct && (
         <div id="add" className="form-reveal" style={{ marginTop: "var(--space-8)" }}>
           <ProductForm onSubmit={handleAddProduct} loading={adding} />
         </div>

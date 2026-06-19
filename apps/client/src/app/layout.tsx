@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Navbar } from "@/shared/components/Navbar";
+import { Navbar } from "@/components/layouts/Navbar";
+import { Footer } from "@/components/layouts/Footer";
 import { AuthProvider } from "@/features/auth/AuthContext";
 
 export const metadata: Metadata = {
@@ -44,16 +45,7 @@ export default function RootLayout({
           <div className="page-wrapper">
             <Navbar />
             <main style={{ flex: 1 }}>{children}</main>
-            <footer className="footer">
-              <div className="container">
-                <p>
-                  ShopSmart &copy; {new Date().getFullYear()} &mdash; Built by{" "}
-                  <a target="_blank" rel="noopener noreferrer">
-                    <strong>Mayank Sharma ❤️</strong>
-                  </a>
-                </p>
-              </div>
-            </footer>
+            <Footer />
           </div>
         </AuthProvider>
       </body>

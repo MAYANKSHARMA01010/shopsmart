@@ -45,7 +45,7 @@ const healthCheckLimiter = rateLimit({
 });
 
 // Health Check
-app.get('/api/health', healthCheckLimiter, async (req: Request, res: Response) => {
+app.get('/api/v1/health', healthCheckLimiter, async (req: Request, res: Response) => {
   let redisStatus = 'disconnected';
   let dbStatus = 'disconnected';
 

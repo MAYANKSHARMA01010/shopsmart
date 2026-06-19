@@ -12,6 +12,7 @@ export function RegisterForm() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -158,22 +159,44 @@ export function RegisterForm() {
           <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
             Password <span style={{ color: "var(--color-error)" }}>*</span>
           </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Min 8 chars, uppercase, number, special char"
-            required
-            style={{
-              padding: "10px 12px",
-              borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              color: "var(--color-text-primary)",
-              fontSize: "14px",
-              outline: "none",
-            }}
-          />
+          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Min 8 chars, uppercase, number, special char"
+              required
+              style={{
+                padding: "10px 12px",
+                paddingRight: "50px",
+                borderRadius: "var(--radius)",
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+                color: "var(--color-text-primary)",
+                fontSize: "14px",
+                outline: "none",
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: "absolute",
+                right: "12px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+                color: "var(--color-text-secondary)",
+                fontSize: "12px",
+                fontWeight: 600,
+              }}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
         </div>
 
         <button
