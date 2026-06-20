@@ -65,30 +65,79 @@ async function seedCategories(): Promise<Map<string, string>> {
 
 // ─── 2. Admin User ─────────────────────────────────────────────────────────
 
-async function seedAdminUser(): Promise<string> {
-  const email = 'admin@shopsmart.dev';
-  const existing = await prisma.user.findUnique({ where: { email } });
+async function seedUsers(): Promise<string> {
+  const usersToSeed = [
+    {
+      name: 'ShopSmart Admin',
+      email: 'admin@shopsmart.dev',
+      username: 'admin',
+      password: 'Admin@123456',
+      role: 'SUPER_ADMIN',
+    },
+    {
+      name: 'TestCustomer',
+      email: 'TestCustomer69@gmail.com',
+      username: 'TestCustomer69',
+      password: 'TestCustomer69@gmail.com',
+      role: 'CUSTOMER',
+    },
+    {
+      name: 'TestAdmin',
+      email: 'TestAdmin69@gmail.com',
+      username: 'TestAdmin69',
+      password: 'TestAdmin69@gmail.com',
+      role: 'ADMIN',
+    },
+    {
+      name: 'TestSuperAdmin',
+      email: 'TestSuperAdmin69@gmail.com',
+      username: 'TestSuperAdmin69',
+      password: 'TestSuperAdmin69@gmail.com',
+      role: 'SUPER_ADMIN',
+    },
+    {
+      name: 'TestVendor',
+      email: 'TestVendor69@gmail.com',
+      username: 'TestVendor69',
+      password: 'TestVendor69@gmail.com',
+      role: 'VENDOR',
+    },
+  ];
 
-  if (existing) {
-    console.log('✓ Admin user already exists — skipping');
-    return existing.id;
+  let mainAdminId = '';
+
+  for (const u of usersToSeed) {
+    const existing = await prisma.user.findUnique({ where: { email: u.email } });
+    if (existing) {
+      console.log(`✓ User ${u.email} already exists — skipping`);
+      if (u.email === 'admin@shopsmart.dev') mainAdminId = existing.id;
+      continue;
+    }
+
+    const hashedPassword = await bcrypt.hash(u.password, 12);
+    const user = await prisma.user.create({
+      data: {
+        name: u.name,
+        email: u.email,
+        username: u.username,
+        password: hashedPassword,
+        role: u.role as any,
+        isEmailVerified: true,
+      },
+    });
+
+    console.log(`✓ User created: ${user.email} (role: ${user.role})`);
+    if (u.email === 'admin@shopsmart.dev') mainAdminId = user.id;
+
+    // Create a cart for each user
+    await prisma.cart.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: { userId: user.id },
+    });
   }
 
-  const hashedPassword = await bcrypt.hash('Admin@123456', 12);
-
-  const admin = await prisma.user.create({
-    data: {
-      name: 'ShopSmart Admin',
-      email,
-      username: 'admin',
-      password: hashedPassword,
-      role: 'SUPER_ADMIN',
-      isEmailVerified: true,
-    },
-  });
-
-  console.log(`✓ Admin user created: ${admin.email} (role: ${admin.role})`);
-  return admin.id;
+  return mainAdminId;
 }
 
 // ─── 3. Products ───────────────────────────────────────────────────────────
@@ -297,8 +346,8 @@ async function main() {
   // Step 1: Categories
   const categoryMap = await seedCategories();
 
-  // Step 2: Admin user
-  const adminId = await seedAdminUser();
+  // Step 2: Users
+  const adminId = await seedUsers();
 
   // Step 3: Products
   await seedProducts(categoryMap);
