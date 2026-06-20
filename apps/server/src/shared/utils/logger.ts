@@ -1,8 +1,9 @@
 import winston from 'winston';
+import { env } from '../config/env';
 
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: process.env.LOG_FORMAT === 'json'
+  level: env.LOG_LEVEL,
+  format: env.LOG_FORMAT === 'json'
     ? winston.format.combine(
         winston.format.timestamp(),
         winston.format.json()

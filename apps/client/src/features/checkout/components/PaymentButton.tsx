@@ -4,6 +4,7 @@ import { useCheckoutStore } from '../store/checkoutStore';
 import { loadRazorpay } from '../../../lib/razorpay';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { env } from '../../../lib/env';
 
 export const PaymentButton: React.FC = () => {
   const router = useRouter();
@@ -35,7 +36,7 @@ export const PaymentButton: React.FC = () => {
 
       // 3. Open Razorpay Modal
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_12345',
+        key: env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_12345',
         amount: orderData.total * 100, // paise
         currency: 'USD', // or INR based on your pricing logic
         name: 'ShopSmart',

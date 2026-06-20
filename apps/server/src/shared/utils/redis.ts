@@ -1,15 +1,16 @@
 import Redis from 'ioredis';
 import logger from './logger';
+import { env } from '../config/env';
 
-const redisUrl = process.env.NODE_ENV === 'production' 
-  ? process.env.REDIS_SERVER_URL 
-  : process.env.REDIS_LOCAL_URL || 'redis://localhost:6379';
+const redisUrl = env.NODE_ENV === 'production' 
+  ? env.REDIS_SERVER_URL 
+  : env.REDIS_LOCAL_URL;
 
 const redis = new Redis(redisUrl!, {
   maxRetriesPerRequest: null,
   retryStrategy: (times) => {
     // Fail fast in test environment
-    if (process.env.NODE_ENV === 'test') {
+    if (env.NODE_ENV === 'test') {
       return null;
     }
     // Stop retrying after 10 attempts

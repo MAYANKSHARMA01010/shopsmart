@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { env } from '../src/shared/config/env';
 import crypto from 'crypto';
 import app from '../src/server';
 import prisma from '../src/shared/config/database';
@@ -23,7 +24,7 @@ describe('Webhook API', () => {
   const secret = 'test-secret';
   
   beforeEach(() => {
-    process.env.RAZORPAY_WEBHOOK_SECRET = secret;
+    env.RAZORPAY_WEBHOOK_SECRET = secret;
     vi.clearAllMocks();
   });
 

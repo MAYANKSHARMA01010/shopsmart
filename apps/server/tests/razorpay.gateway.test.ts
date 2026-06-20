@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { env } from '../src/shared/config/env';
 import { RazorpayGateway } from '../src/modules/payment/razorpay.gateway';
 import { Prisma } from '@prisma/client';
 import crypto from 'crypto';
@@ -26,14 +27,14 @@ describe('RazorpayGateway', () => {
   let gateway: RazorpayGateway;
 
   beforeEach(() => {
-    process.env.RAZORPAY_KEY_ID = 'test_id';
-    process.env.RAZORPAY_KEY_SECRET = 'test_secret';
+    env.RAZORPAY_KEY_ID = 'test_id';
+    env.RAZORPAY_KEY_SECRET = 'test_secret';
     vi.clearAllMocks();
     gateway = new RazorpayGateway();
   });
 
   it('throws error if credentials are missing', () => {
-    delete process.env.RAZORPAY_KEY_ID;
+    env.RAZORPAY_KEY_ID = '';
     expect(() => new RazorpayGateway()).toThrow('Razorpay credentials are not configured');
   });
 

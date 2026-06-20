@@ -27,7 +27,7 @@ import authRoutes from './modules/auth/auth.routes';
 import './workers/paymentWebhook.worker';
 
 const app = express();
-const PORT = env.PORT || 5001;
+const PORT = env.SERVER_PORT || 5001;
 
 // Security & rate limiting middlewares
 app.use(helmet());

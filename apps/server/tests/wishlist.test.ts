@@ -1,11 +1,12 @@
 import request from 'supertest';
+import { env } from '../src/shared/config/env';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import app from '../src/server';
 import prisma from '../src/shared/config/database';
 import jwt from 'jsonwebtoken';
 
 const generateAccessToken = (payload: any) => {
-  return jwt.sign(payload, process.env.JWT_ACCESS_SECRET || 'default-access-secret', { expiresIn: '15m' });
+  return jwt.sign(payload, env.JWT_ACCESS_SECRET, { expiresIn: '15m' });
 };
 
 describe('ShopSmart — Wishlist API Tests', () => {

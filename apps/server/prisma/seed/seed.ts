@@ -11,6 +11,7 @@
  */
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { env } from '../../src/shared/config/env';
 
 const prisma = new PrismaClient();
 
@@ -65,7 +66,7 @@ async function seedCategories(): Promise<Map<string, string>> {
 
 // ─── 2. Admin User ─────────────────────────────────────────────────────────
 
-async function seedUsers(): Promise<string> {
+async function seedUsers(): Promise<{ adminId: string; vendorId: string; vendor2Id: string }> {
   const usersToSeed = [
     {
       name: 'ShopSmart Admin',
@@ -102,9 +103,18 @@ async function seedUsers(): Promise<string> {
       password: 'TestVendor69@gmail.com',
       role: 'VENDOR',
     },
+    {
+      name: 'TestVendor',
+      email: 'TestVendor692@gmail.com',
+      username: 'TestVendor692',
+      password: 'TestVendor692@gmail.com',
+      role: 'VENDOR',
+    },
   ];
 
   let mainAdminId = '';
+  let vendorId = '';
+  let vendor2Id = '';
 
   for (const u of usersToSeed) {
     const existing = await prisma.user.findUnique({ where: { email: u.email } });
@@ -120,6 +130,8 @@ async function seedUsers(): Promise<string> {
         console.log(`✓ User ${u.email} already exists — skipping`);
       }
       if (u.email === 'admin@shopsmart.dev') mainAdminId = existing.id;
+      if (u.email === 'TestVendor69@gmail.com') vendorId = existing.id;
+      if (u.email === 'TestVendor692@gmail.com') vendor2Id = existing.id;
       continue;
     }
 
@@ -137,6 +149,8 @@ async function seedUsers(): Promise<string> {
 
     console.log(`✓ User created: ${user.email} (role: ${user.role})`);
     if (u.email === 'admin@shopsmart.dev') mainAdminId = user.id;
+    if (u.email === 'TestVendor69@gmail.com') vendorId = user.id;
+    if (u.email === 'TestVendor692@gmail.com') vendor2Id = user.id;
 
     // Create a cart for each user
     await prisma.cart.upsert({
@@ -146,7 +160,7 @@ async function seedUsers(): Promise<string> {
     });
   }
 
-  return mainAdminId;
+  return { adminId: mainAdminId, vendorId, vendor2Id };
 }
 
 // ─── 3. Products ───────────────────────────────────────────────────────────
@@ -309,16 +323,34 @@ const PRODUCTS: ProductSeed[] = [
   },
 ];
 
-async function seedProducts(categoryMap: Map<string, string>): Promise<void> {
-  for (const product of PRODUCTS) {
+async function seedProducts(categoryMap: Map<string, string>, vendorId: string, vendor2Id: string): Promise<void> {
+  const categories = Array.from(categoryMap.keys());
+  
+  const vendorProducts: ProductSeed[] = Array.from({ length: 50 }).map((_, i) => ({
+    name: `Vendor Product ${i + 1}`,
+    slug: `vendor-product-${i + 1}`,
+    description: `This is an amazing vendor product ${i + 1} with fantastic features.`,
+    basePrice: Math.floor(Math.random() * 5000) + 100,
+    stock: Math.floor(Math.random() * 100) + 10,
+    images: [`https://picsum.photos/seed/vp${i + 1}/400/400`],
+    categorySlug: categories[Math.floor(Math.random() * categories.length)],
+  }));
+
+  const allProducts = [...PRODUCTS, ...vendorProducts];
+
+  for (const product of allProducts) {
     const categoryId = categoryMap.get(product.categorySlug);
     if (!categoryId) {
       throw new Error(`Category not found in map: "${product.categorySlug}". Run seedCategories first.`);
     }
 
+    const isVendorProduct = product.slug.startsWith('vendor-product-');
+
     await prisma.product.upsert({
       where: { slug: product.slug },
-      update: {},
+      update: {
+        vendorId: isVendorProduct ? vendorId : vendor2Id,
+      },
       create: {
         name: product.name,
         slug: product.slug,
@@ -328,11 +360,12 @@ async function seedProducts(categoryMap: Map<string, string>): Promise<void> {
         images: product.images,
         isVisible: true,
         categoryId,
+        vendorId: isVendorProduct ? vendorId : vendor2Id,
       },
     });
   }
 
-  console.log(`✓ Products: ${PRODUCTS.length} seeded`);
+  console.log(`✓ Products: ${allProducts.length} seeded`);
 }
 
 // ─── 4. Admin Cart ─────────────────────────────────────────────────────────
@@ -349,17 +382,17 @@ async function seedAdminCart(adminId: string): Promise<void> {
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 async function main() {
-  const isProduction = process.env.NODE_ENV === 'production';
-  console.log(`\n🌱 ShopSmart Phase 1 Seed (env: ${process.env.NODE_ENV ?? 'development'})\n`);
+  const isProduction = env.NODE_ENV === 'production';
+  console.log(`\n🌱 ShopSmart Phase 1 Seed (env: ${env.NODE_ENV})\n`);
 
   // Step 1: Categories
   const categoryMap = await seedCategories();
 
   // Step 2: Users
-  const adminId = await seedUsers();
+  const { adminId, vendorId, vendor2Id } = await seedUsers();
 
   // Step 3: Products
-  await seedProducts(categoryMap);
+  await seedProducts(categoryMap, vendorId, vendor2Id);
 
   // Step 4: Admin cart (dev/staging only)
   if (!isProduction) {

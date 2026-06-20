@@ -1,10 +1,11 @@
 import { CorsOptions } from 'cors';
+import { env } from './env';
 
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = [
-      process.env.FRONTEND_LOCAL_URL || 'http://localhost:3000',
-      process.env.FRONTEND_SERVER_URL, // This should be your ALB DNS name
+      env.FRONTEND_LOCAL_URL,
+      env.FRONTEND_SERVER_URL, // This should be your ALB DNS name
       'http://127.0.0.1:3000'
     ].filter(Boolean) as string[];
 

@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { env } from '../src/shared/config/env';
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import jwt from 'jsonwebtoken';
 import { Role } from '@prisma/client';
@@ -36,7 +37,7 @@ vi.mock('razorpay', () => ({
   })),
 }));
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'default-access-secret';
+const ACCESS_SECRET = env.JWT_ACCESS_SECRET;
 
 describe('ShopSmart — Checkout Integration Tests', () => {
   const suffix = Math.random().toString(36).substring(2, 8);

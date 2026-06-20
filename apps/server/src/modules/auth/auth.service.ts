@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { env } from '../../shared/config/env';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { AppError } from '../../shared/utils/AppError';
@@ -6,10 +7,10 @@ import { JwtPayload } from './auth.types';
 import { Role } from '@prisma/client';
 import { authRepository } from './auth.repository';
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'default-access-secret';
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'default-refresh-secret';
-const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES_IN || '15m';
-const REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+const ACCESS_SECRET = env.JWT_ACCESS_SECRET;
+const REFRESH_SECRET = env.JWT_REFRESH_SECRET;
+const ACCESS_EXPIRES = env.JWT_ACCESS_EXPIRES_IN;
+const REFRESH_EXPIRES = env.JWT_REFRESH_EXPIRES_IN;
 
 const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
 
@@ -47,7 +48,7 @@ class AuthService {
     }
 
     // Hash password
-    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10);
+    const saltRounds = parseInt(env.BCRYPT_SALT_ROUNDS, 10);
     const passwordHash = await bcrypt.hash(data.password, saltRounds);
 
     // Create user and cart in transaction
@@ -162,7 +163,7 @@ class AuthService {
       throw new AppError('Incorrect current password', 400);
     }
 
-    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10);
+    const saltRounds = parseInt(env.BCRYPT_SALT_ROUNDS, 10);
     const passwordHash = await bcrypt.hash(data.newPassword, saltRounds);
 
     await authRepository.updateUser(userId, { password: passwordHash });

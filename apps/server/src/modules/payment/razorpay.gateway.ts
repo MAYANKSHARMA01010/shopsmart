@@ -4,14 +4,15 @@ import { Prisma } from '@prisma/client';
 import { PaymentGateway, CreateOrderParams, VerifySignatureParams } from './payment.interface';
 import { AppError } from '../../shared/utils/AppError';
 import logger from '../../shared/utils/logger';
+import { env } from '../../shared/config/env';
 
 export class RazorpayGateway implements PaymentGateway {
   private razorpay: Razorpay;
   private keySecret: string;
 
   constructor() {
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const keyId = env.RAZORPAY_KEY_ID;
+    const keySecret = env.RAZORPAY_KEY_SECRET;
 
     if (!keyId || !keySecret) {
       throw new AppError('Razorpay credentials are not configured', 500);

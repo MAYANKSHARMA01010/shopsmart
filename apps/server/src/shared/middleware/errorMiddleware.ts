@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import logger from '../utils/logger';
 import { AppError } from '../utils/AppError';
+import { env } from '../config/env';
 
 type ErrorPayload = {
   statusCode?: number;
@@ -23,7 +24,7 @@ export const errorHandler = (err: unknown, _req: Request, res: Response, _next: 
     success: false,
     message: isOperational && payload.message ? payload.message : 'Something went very wrong!',
     ...(payload.errors ? { errors: payload.errors } : {}),
-    ...(process.env.NODE_ENV === 'test' ? { debugError: (err as any)?.message, stack: (err as any)?.stack } : {}),
+    ...(env.NODE_ENV === 'test' ? { debugError: (err as any)?.message, stack: (err as any)?.stack } : {}),
   });
 };
 

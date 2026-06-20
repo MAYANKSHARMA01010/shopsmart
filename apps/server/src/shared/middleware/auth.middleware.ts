@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AppError } from '../utils/AppError';
 import { JwtPayload } from '../../modules/auth/auth.types';
+import { env } from '../config/env';
 
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
@@ -12,7 +13,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET || 'default-access-secret') as JwtPayload;
+    const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as JwtPayload;
     req.user = decoded;
     next();
   } catch (error: unknown) {

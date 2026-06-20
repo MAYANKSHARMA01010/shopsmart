@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { env } from '../../shared/config/env';
 import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import { AppError } from '../../shared/utils/AppError';
@@ -9,7 +10,7 @@ import logger from '../../shared/utils/logger';
 
 export const verifyPayment = catchAsync(async (req: Request, res: Response) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-  const secret = process.env.RAZORPAY_API_SECRET || 'secret';
+  const secret = env.RAZORPAY_KEY_SECRET;
   
   const hmac = crypto.createHmac('sha256', secret);
   hmac.update(razorpay_order_id + '|' + razorpay_payment_id);
@@ -25,7 +26,7 @@ export const verifyPayment = catchAsync(async (req: Request, res: Response) => {
 
 export const handleRazorpayWebhook = catchAsync(async (req: Request, res: Response) => {
   const signature = req.headers['x-razorpay-signature'] as string;
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET || 'secret';
+  const secret = env.RAZORPAY_WEBHOOK_SECRET;
 
   if (!Buffer.isBuffer(req.body)) {
     throw new AppError('Raw body is missing. Ensure express.raw() is configured.', 500);

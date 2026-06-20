@@ -1,17 +1,19 @@
 import axios from "axios";
 import { useAuthStore } from "../features/auth/store/authStore";
+import { env } from "./env";
 
-const isProd = process.env.NODE_ENV === "production";
+const isProd = env.NODE_ENV === "production";
 
 const baseURL = isProd
-  ? process.env.NEXT_PUBLIC_SERVER_BACKEND_URL || "/api/v1" // In prod, it might be proxied or a full URL
-  : process.env.NEXT_PUBLIC_LOCAL_BACKEND_URL || "http://localhost:5001/api/v1";
+  ? env.NEXT_PUBLIC_SERVER_BACKEND_URL || "/api/v1" // In prod, it might be proxied or a full URL
+  : env.NEXT_PUBLIC_LOCAL_BACKEND_URL || "http://localhost:5001/api/v1";
 
 const apiClient = axios.create({
   baseURL,
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
 
 // Request interceptor: attach bearer token

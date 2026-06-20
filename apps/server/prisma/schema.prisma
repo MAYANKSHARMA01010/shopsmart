@@ -55,6 +55,7 @@ model User {
   cart           Cart?
   wishlist       Wishlist[]
   addresses      Address[]
+  products       Product[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -131,9 +132,11 @@ model Product {
   images       String[]
   isVisible    Boolean  @default(true)
   categoryId   String
+  vendorId     String?
 
   // Relations
   category   Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  vendor     User?       @relation(fields: [vendorId], references: [id], onDelete: SetNull)
   orderItems OrderItem[]
   cartItems  CartItem[]
   wishlistedBy Wishlist[]

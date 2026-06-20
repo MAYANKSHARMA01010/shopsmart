@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { env } from '../src/shared/config/env';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import jwt from 'jsonwebtoken';
 import { Role } from '@prisma/client';
@@ -12,7 +13,7 @@ import {
   productIdParamSchema,
 } from '../src/modules/cart/cart.validator';
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'default-access-secret';
+const ACCESS_SECRET = env.JWT_ACCESS_SECRET;
 
 // ═══════════════════════════════════════════════════════════════
 // UNIT TESTS — Zod Validation Schemas
