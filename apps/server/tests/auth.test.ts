@@ -181,17 +181,23 @@ describe('ShopSmart — Auth Integration Tests', () => {
 
   describe('POST /api/auth/logout', () => {
     it('should log out successfully and revoke refresh token', async () => {
+      // Do a fresh login to get a valid refresh token (avoids ordering issues with token rotation above)
+      const loginRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ identifier: testEmail, password: testPassword });
+      const freshRefreshToken = loginRes.body.data.refreshToken;
+
       const res = await request(app)
         .post('/api/v1/auth/logout')
-        .send({ refreshToken });
+        .send({ refreshToken: freshRefreshToken });
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Logged out successfully');
 
-      // Refreshing with the same token should now fail
+      // Refreshing with the revoked token should now fail
       const refreshRes = await request(app)
         .post('/api/v1/auth/refresh')
-        .send({ refreshToken });
+        .send({ refreshToken: freshRefreshToken });
 
       expect(refreshRes.status).toBe(401);
     });

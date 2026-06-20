@@ -13,8 +13,13 @@ describe('ShopSmart — Wishlist API Tests', () => {
   let testProductId: string;
 
   beforeAll(async () => {
-    // Ensure clean state
+    // Ensure clean state (delete in FK dependency order)
     await prisma.wishlist.deleteMany();
+    await prisma.orderItem.deleteMany();
+    await prisma.payment.deleteMany();
+    await prisma.order.deleteMany();
+    await prisma.cartItem.deleteMany();
+    await prisma.cart.deleteMany();
     await prisma.product.deleteMany();
     await prisma.user.deleteMany();
     await prisma.category.deleteMany();
@@ -52,6 +57,11 @@ describe('ShopSmart — Wishlist API Tests', () => {
 
   afterAll(async () => {
     await prisma.wishlist.deleteMany();
+    await prisma.orderItem.deleteMany();
+    await prisma.payment.deleteMany();
+    await prisma.order.deleteMany();
+    await prisma.cartItem.deleteMany();
+    await prisma.cart.deleteMany();
     await prisma.product.deleteMany();
     await prisma.user.deleteMany();
     await prisma.category.deleteMany();
