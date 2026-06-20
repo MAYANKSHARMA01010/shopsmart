@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../AuthContext";
 import Link from "next/link";
 
+import toast from "react-hot-toast";
+
 export function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
@@ -17,7 +19,9 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier || !password) {
-      setError("Please fill in all fields");
+      const msg = "Please fill in all fields";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -26,9 +30,12 @@ export function LoginForm() {
 
     try {
       await login({ identifier, password });
+      toast.success("Welcome back!");
       router.push("/products");
     } catch (err: any) {
-      setError(err.message || "Invalid credentials");
+      const msg = err.message || "Invalid credentials";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

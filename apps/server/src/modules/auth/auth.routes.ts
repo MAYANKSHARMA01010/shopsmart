@@ -6,6 +6,7 @@ import {
   loginSchema,
   refreshSchema,
   updateProfileSchema,
+  changePasswordSchema,
   validateBody,
 } from './auth.validator';
 import { authRateLimiter } from '../../shared/middleware/rateLimit.middleware';
@@ -21,5 +22,6 @@ router.post('/logout', validateBody(refreshSchema), authController.logout);
 // Protected routes
 router.get('/me', authenticate, authController.getMe);
 router.put('/profile', authenticate, validateBody(updateProfileSchema), authController.updateProfile);
+router.post('/change-password', authenticate, validateBody(changePasswordSchema), authController.changePassword);
 
 export default router;

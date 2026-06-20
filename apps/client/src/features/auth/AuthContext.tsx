@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuthStore } from "./store/authStore";
 import { authService } from "./services/authService";
 import type { User, LoginFormValues, RegisterFormValues, UpdateProfileFormValues } from "./types/authSchema";
+import toast from "react-hot-toast";
 
 interface AuthContextType {
   user: User | null;
@@ -20,8 +21,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { user, accessToken, refreshToken, setAuth, updateUser, clearAuth } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
+    const unsubFinishHydration = useAuthStore.persist.onFinishHydration(() => setIsHydrated(true));
+    setIsHydrated(useAuthStore.persist.hasHydrated());
+    return () => {
+      unsubFinishHydration();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
     const initAuth = async () => {
       if (accessToken) {
         try {
@@ -36,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initAuth();
-  }, [accessToken, updateUser, clearAuth]);
+  }, [accessToken, isHydrated, updateUser, clearAuth]);
 
   const login = async (values: LoginFormValues) => {
     setIsLoading(true);
@@ -64,8 +76,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (refreshToken) {
         await authService.logout(refreshToken);
       }
-    } catch (error) {
+      toast.success("Logged out successfully");
+    } catch (error: any) {
       console.error("Logout API error:", error);
+      toast.error("Failed to log out: " + (error.message || "Unknown error"));
     } finally {
       clearAuth();
       setIsLoading(false);

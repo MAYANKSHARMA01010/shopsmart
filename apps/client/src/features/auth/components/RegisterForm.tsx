@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../AuthContext";
 import Link from "next/link";
 
+import toast from "react-hot-toast";
+
 export function RegisterForm() {
   const { register } = useAuth();
   const router = useRouter();
@@ -20,7 +22,9 @@ export function RegisterForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) {
-      setError("Please fill in all required fields");
+      const msg = "Please fill in all required fields";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -35,9 +39,12 @@ export function RegisterForm() {
         password,
         phone: phone || undefined,
       });
+      toast.success("Account created successfully!");
       router.push("/products");
     } catch (err: any) {
-      setError(err.message || "Registration failed. Try again.");
+      const msg = err.message || "Registration failed. Try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

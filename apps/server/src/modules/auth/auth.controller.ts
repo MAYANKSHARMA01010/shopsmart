@@ -63,3 +63,13 @@ export const updateProfile = catchAsync(async (req: Request, res: Response) => {
     message: 'Profile updated successfully',
   });
 });
+
+export const changePassword = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  await authService.changePassword(userId, req.body);
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Password changed successfully',
+  });
+});

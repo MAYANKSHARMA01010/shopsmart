@@ -43,4 +43,7 @@ export const authService = {
 
   updateProfile: (data: UpdateProfileFormValues): Promise<UserResponse> =>
     apiClient.put("/auth/profile", data),
+
+  changePassword: (data: any): Promise<any> =>
+    apiClient.post("/auth/change-password", data),
 };

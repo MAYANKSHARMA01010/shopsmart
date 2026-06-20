@@ -151,6 +151,23 @@ class AuthService {
     return this.sanitizeUser(updatedUser);
   }
 
+  async changePassword(userId: string, data: Record<string, string>) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    const isMatch = await bcrypt.compare(data.currentPassword, user.password);
+    if (!isMatch) {
+      throw new AppError('Incorrect current password', 400);
+    }
+
+    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10);
+    const passwordHash = await bcrypt.hash(data.newPassword, saltRounds);
+
+    await authRepository.updateUser(userId, { password: passwordHash });
+  }
+
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   private generateTokenPair(user: { id: string; email: string; role: Role }) {
