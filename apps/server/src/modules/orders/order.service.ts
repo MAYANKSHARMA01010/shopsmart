@@ -1,4 +1,5 @@
 import prisma from '../../shared/config/database';
+import { OrderStatus } from '@prisma/client';
 
 export class OrderService {
   async getMyOrders(userId: string) {
@@ -67,15 +68,10 @@ export class OrderService {
     });
   }
 
-  async updateOrderStatus(orderId: string, status: string, trackingNumber?: string) {
-    const dataToUpdate: any = { status };
-    if (trackingNumber !== undefined) {
-      dataToUpdate.trackingNumber = trackingNumber;
-    }
-    
+  async updateOrderStatus(orderId: string, status: OrderStatus) {
     return prisma.order.update({
       where: { id: orderId },
-      data: dataToUpdate,
+      data: { status },
     });
   }
 }

@@ -10,7 +10,7 @@ export const getMyOrders = async (req: Request, res: Response): Promise<void> =>
     }
 
     const orders = await orderService.getMyOrders(userId);
-    res.status(200).json({ status: 'success', data: orders });
+    res.status(200).json({ status: 'success', data: { orders } });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: error.message || 'Internal server error' });
   }
@@ -62,9 +62,9 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
     }
 
     const orderId = req.params.id as string;
-    const { status, trackingNumber } = req.body;
+    const { status } = req.body;
 
-    const order = await orderService.updateOrderStatus(orderId, status, trackingNumber);
+    const order = await orderService.updateOrderStatus(orderId, status);
     res.status(200).json({ status: 'success', data: { order } });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: error.message });
