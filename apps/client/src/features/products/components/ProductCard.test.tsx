@@ -60,14 +60,14 @@ describe('ProductCard', () => {
   });
 
   it('shows deleting state when deleting prop is true', () => {
-    render(<ProductCard product={mockProduct as any} onDelete={() => {}} deleting={true} />);
+    render(<ProductCard product={mockProduct as any} onDelete={() => {}} deleting={true} canManage={true} />);
     expect(screen.getByText(/Deleting/i)).toBeInTheDocument();
   });
 
   it('calls onDelete with product id when Delete button clicked', async () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
-    render(<ProductCard product={mockProduct as any} onDelete={onDelete} deleting={false} />);
+    render(<ProductCard product={mockProduct as any} onDelete={onDelete} deleting={false} canManage={true} />);
 
     await user.click(screen.getByRole('button', { name: /delete test product/i }));
     expect(onDelete).toHaveBeenCalledOnce();
@@ -75,7 +75,7 @@ describe('ProductCard', () => {
   });
 
   it('disables delete button when deleting is true', () => {
-    render(<ProductCard product={mockProduct as any} onDelete={() => {}} deleting={true} />);
+    render(<ProductCard product={mockProduct as any} onDelete={() => {}} deleting={true} canManage={true} />);
     expect(screen.getByRole('button', { name: /delete test product/i })).toBeDisabled();
   });
 });
