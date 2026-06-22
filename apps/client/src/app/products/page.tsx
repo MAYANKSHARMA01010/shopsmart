@@ -207,7 +207,7 @@ function ProductsPageContent() {
       </div>
 
       {/* Stats */}
-      {!loading && total > 0 && (
+      {canAddProduct && !loading && total > 0 && (
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon"><IconBox /></div>
@@ -357,6 +357,7 @@ function ProductsPageContent() {
                 product={product}
                 onDelete={deleteProduct}
                 deleting={deletingId === product.id}
+                canManage={!!canAddProduct}
               />
             ))}
           </div>

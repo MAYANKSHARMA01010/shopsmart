@@ -385,6 +385,20 @@ async function main() {
   const isProduction = env.NODE_ENV === 'production';
   console.log(`\n🌱 ShopSmart Phase 1 Seed (env: ${env.NODE_ENV})\n`);
 
+  if (!isProduction) {
+    console.log('🧹 Wiping all old data from development database...');
+    // Delete in order of dependencies to avoid foreign key constraints
+    await prisma.cartItem.deleteMany();
+    await prisma.cart.deleteMany();
+    await prisma.orderItem.deleteMany();
+    await prisma.order.deleteMany();
+    await prisma.product.deleteMany();
+    await prisma.category.deleteMany();
+    await prisma.address.deleteMany();
+    await prisma.user.deleteMany();
+    console.log('✓ Old data removed');
+  }
+
   // Step 1: Categories
   const categoryMap = await seedCategories();
 

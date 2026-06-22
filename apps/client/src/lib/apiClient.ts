@@ -1,5 +1,7 @@
 import axios from "axios";
 import { useAuthStore } from "../features/auth/store/authStore";
+import { useCartStore } from "../features/cart/store/cartStore";
+import { useWishlistStore } from "../features/wishlist/store/wishlistStore";
 import { env } from "./env";
 
 const isProd = env.NODE_ENV === "production";
@@ -74,6 +76,8 @@ apiClient.interceptors.response.use(
 
       if (!refreshToken) {
         useAuthStore.getState().clearAuth();
+        useCartStore.getState().resetCart();
+        useWishlistStore.getState().resetWishlist();
         return Promise.reject(error);
       }
 
@@ -91,6 +95,8 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         useAuthStore.getState().clearAuth();
+        useCartStore.getState().resetCart();
+        useWishlistStore.getState().resetWishlist();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

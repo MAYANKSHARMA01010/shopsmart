@@ -2,7 +2,7 @@ import apiClient from "../../../lib/apiClient";
 import type { Order } from "../types/orderSchema";
 
 export const orderService = {
-  getMyOrders: (): Promise<{ status: string; data: Order[] }> =>
+  getMyOrders: (): Promise<{ status: string; data: { orders: Order[] } }> =>
     apiClient.get("/orders/my-orders"),
 
   getOrderById: (id: string): Promise<{ status: string; data: { order: Order } }> =>

@@ -3,6 +3,7 @@ import "./globals.css";
 import { Navbar } from "@/components/layouts/Navbar";
 import { Footer } from "@/components/layouts/Footer";
 import { AuthProvider } from "@/features/auth/AuthContext";
+import { QueryProvider } from "@/providers/QueryProvider";
 
 import { Toaster } from "react-hot-toast";
 
@@ -43,14 +44,16 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning>
-        <AuthProvider>
-          <div className="page-wrapper">
-            <Navbar />
-            <main style={{ flex: 1 }}>{children}</main>
-            <Footer />
-          </div>
-          <Toaster position="bottom-right" />
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <div className="page-wrapper">
+              <Navbar />
+              <main style={{ flex: 1 }}>{children}</main>
+              <Footer />
+            </div>
+            <Toaster position="bottom-right" />
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

@@ -82,9 +82,15 @@ export default function CartPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem" }}>
                     <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", overflow: "hidden" }}>
                       <button 
-                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                        disabled={item.quantity <= 1 || isLoading}
-                        style={{ padding: "0.25rem 0.75rem", background: "transparent", border: "none", cursor: item.quantity <= 1 ? "not-allowed" : "pointer" }}
+                        onClick={() => {
+                          if (item.quantity <= 1) {
+                            removeItem(item.productId);
+                          } else {
+                            updateQuantity(item.productId, item.quantity - 1);
+                          }
+                        }}
+                        disabled={isLoading}
+                        style={{ padding: "0.25rem 0.75rem", background: "transparent", border: "none", cursor: isLoading ? "not-allowed" : "pointer" }}
                       >
                         -
                       </button>

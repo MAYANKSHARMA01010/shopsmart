@@ -100,19 +100,17 @@ export function Navbar() {
               <li>
                 <Link
                   href="/profile/wishlist"
-                  className={`nav-link${pathname === "/profile/wishlist" ? " active" : ""
-                    }`}
+                  className={`nav-link${pathname === "/profile/wishlist" ? " active" : ""}`}
                   style={{
+                    position: "relative",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.25rem",
                   }}
-                  aria-label={`Wishlist (${mounted ? wishlistItemsCount : 0
-                    } items)`}
+                  aria-label={`Wishlist (${mounted ? wishlistItemsCount : 0} items)`}
                 >
                   <svg
-                    width="18"
-                    height="18"
+                    width="20"
+                    height="20"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -125,16 +123,24 @@ export function Navbar() {
                   {mounted && wishlistItemsCount > 0 && (
                     <span
                       style={{
-                        background: "#e63946",
+                        position: "absolute",
+                        top: "-6px",
+                        right: "-8px",
+                        background: "var(--color-danger, #e63946)",
                         color: "white",
-                        fontSize: "0.7rem",
-                        padding: "2px 6px",
+                        fontSize: "0.65rem",
+                        minWidth: "16px",
+                        height: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "0 4px",
                         borderRadius: "10px",
                         fontWeight: "bold",
-                        marginLeft: "2px",
+                        lineHeight: 1,
                       }}
                     >
-                      {wishlistItemsCount}
+                      {wishlistItemsCount > 99 ? "99+" : wishlistItemsCount}
                     </span>
                   )}
                 </Link>
@@ -146,15 +152,15 @@ export function Navbar() {
                   href="/cart"
                   className={`nav-link${pathname === "/cart" ? " active" : ""}`}
                   style={{
+                    position: "relative",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.25rem",
                   }}
                   aria-label={`Cart (${mounted ? cartItemsCount : 0} items)`}
                 >
                   <svg
-                    width="18"
-                    height="18"
+                    width="20"
+                    height="20"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -169,16 +175,24 @@ export function Navbar() {
                   {mounted && cartItemsCount > 0 && (
                     <span
                       style={{
+                        position: "absolute",
+                        top: "-6px",
+                        right: "-8px",
                         background: "var(--color-primary)",
                         color: "white",
-                        fontSize: "0.7rem",
-                        padding: "2px 6px",
+                        fontSize: "0.65rem",
+                        minWidth: "16px",
+                        height: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "0 4px",
                         borderRadius: "10px",
                         fontWeight: "bold",
-                        marginLeft: "2px",
+                        lineHeight: 1,
                       }}
                     >
-                      {cartItemsCount}
+                      {cartItemsCount > 99 ? "99+" : cartItemsCount}
                     </span>
                   )}
                 </Link>

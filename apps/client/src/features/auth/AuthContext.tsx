@@ -5,6 +5,8 @@ import { useAuthStore } from "./store/authStore";
 import { authService } from "./services/authService";
 import type { User, LoginFormValues, RegisterFormValues, UpdateProfileFormValues } from "./types/authSchema";
 import toast from "react-hot-toast";
+import { useCartStore } from "../cart/store/cartStore";
+import { useWishlistStore } from "../wishlist/store/wishlistStore";
 
 interface AuthContextType {
   user: User | null;
@@ -40,8 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const res = await authService.getMe();
           updateUser(res.data.user);
         } catch (error) {
-          console.error("Failed to load user profile on mount:", error);
-          clearAuth();
+          console.error("Failed to load user profile on mount (server might be restarting):", error);
+          // We intentionally DO NOT call clearAuth() here.
+          // apiClient.ts already handles clearing auth if the token is genuinely invalid (401).
+          // If we clear it here, the user gets logged out every time the server restarts or goes offline!
         }
       }
       setIsLoading(false);
@@ -82,6 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.error("Failed to log out: " + (error.message || "Unknown error"));
     } finally {
       clearAuth();
+      useCartStore.getState().resetCart();
+      useWishlistStore.getState().resetWishlist();
       setIsLoading(false);
     }
   };

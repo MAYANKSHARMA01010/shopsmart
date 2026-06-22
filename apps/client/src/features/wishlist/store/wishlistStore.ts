@@ -46,13 +46,13 @@ export const useWishlistStore = create<WishlistState>()(
 
       toggleItem: async (product: Product) => {
         const token = useAuthStore.getState().accessToken;
-        const currentItems = get().items;
-        const isCurrentlyWishlisted = currentItems.some((i) => i.productId === product.id);
+        const currentItems = get().items || [];
+        const isCurrentlyWishlisted = currentItems.some((i) => i?.productId === product.id);
 
         if (!token) {
           // Guest Mode - Local Only
           if (isCurrentlyWishlisted) {
-            set({ items: currentItems.filter((i) => i.productId !== product.id) });
+            set({ items: currentItems.filter((i) => i?.productId !== product.id) });
             return false;
           } else {
             const newItem: WishlistItem = {
@@ -70,7 +70,7 @@ export const useWishlistStore = create<WishlistState>()(
         // Authenticated - Optimistic Update
         if (isCurrentlyWishlisted) {
           // Optimistically remove
-          set({ items: currentItems.filter((i) => i.productId !== product.id) });
+          set({ items: currentItems.filter((i) => i?.productId !== product.id) });
           try {
             await wishlistService.removeItem(product.id);
             return false;
@@ -104,10 +104,10 @@ export const useWishlistStore = create<WishlistState>()(
 
       removeItem: async (productId: string) => {
         const token = useAuthStore.getState().accessToken;
-        const currentItems = get().items;
+        const currentItems = get().items || [];
         
         // Optimistic Remove
-        set({ items: currentItems.filter((i) => i.productId !== productId) });
+        set({ items: currentItems.filter((i) => i?.productId !== productId) });
 
         if (token) {
           try {
@@ -140,7 +140,7 @@ export const useWishlistStore = create<WishlistState>()(
       },
 
       isInWishlist: (productId: string) => {
-        return get().items.some((i) => i.productId === productId);
+        return get().items?.some((i) => i?.productId === productId) ?? false;
       },
     }),
     {

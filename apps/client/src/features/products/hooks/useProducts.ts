@@ -1,24 +1,27 @@
-import { useState, useCallback, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { productService } from "../services/productService";
 import type { Product, ProductData } from "../types/productSchema";
 
 export function useProducts(filters: { search?: string; category?: string; minPrice?: string; maxPrice?: string; sort?: string; page?: string; limit?: string }) {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [success, setSuccess] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
-  // id is now a UUID string, not a number
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await productService.getAll({
+  const queryKey = [
+    "products",
+    filters.search,
+    filters.category,
+    filters.minPrice,
+    filters.maxPrice,
+    filters.sort,
+    filters.page,
+    filters.limit,
+  ];
+
+  const { data, isLoading: loading, error, refetch: refresh } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      return await productService.getAll({
         search: filters.search || undefined,
         category: filters.category !== "all" ? filters.category : undefined,
         minPrice: filters.minPrice || undefined,
@@ -27,69 +30,57 @@ export function useProducts(filters: { search?: string; category?: string; minPr
         page: filters.page || "1",
         limit: filters.limit || "12",
       });
-      // Unwrap from { data: Product[], total: number } envelope
-      setProducts(response.data);
-      setPage(response.page);
-      setTotalPages(response.totalPages);
-      setTotal(response.total);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load products");
-    } finally {
-      setLoading(false);
-    }
-  }, [filters.search, filters.category, filters.minPrice, filters.maxPrice, filters.sort, filters.page, filters.limit]);
+    },
+  });
 
-  useEffect(() => {
-    const t = setTimeout(fetchProducts, 300);
-    return () => clearTimeout(t);
-  }, [fetchProducts]);
-
-  const addProduct = async (data: ProductData): Promise<Product | undefined> => {
-    setAdding(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      const response = await productService.create(data);
-      const product = response.data;
-      setProducts((prev) => [product, ...prev]);
-      setSuccess(`"${product.name}" has been added successfully!`);
+  const addMutation = useMutation({
+    mutationFn: (newProduct: ProductData) => productService.create(newProduct),
+    onSuccess: (response) => {
+      // Invalidate the cache to instantly refetch products
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setSuccess(`"${response.data.name}" has been added successfully!`);
       setTimeout(() => setSuccess(null), 3000);
-      return product;
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => productService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setSuccess("Product deleted.");
+      setTimeout(() => setSuccess(null), 2000);
+    },
+  });
+
+  const addProduct = async (productData: ProductData): Promise<Product | undefined> => {
+    try {
+      const result = await addMutation.mutateAsync(productData);
+      return result.data;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add product");
-    } finally {
-      setAdding(false);
+      throw err;
     }
   };
 
   const deleteProduct = async (id: string): Promise<void> => {
-    setDeletingId(id);
-    setError(null);
-    setSuccess(null);
     try {
-      await productService.delete(id);
-      setProducts((prev) => prev.filter((p) => p.id !== id));
-      setSuccess("Product deleted.");
-      setTimeout(() => setSuccess(null), 2000);
+      await deleteMutation.mutateAsync(id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
-    } finally {
-      setDeletingId(null);
+      throw err;
     }
   };
 
   return {
-    products,
+    products: data?.data || [],
+    page: data?.page || 1,
+    totalPages: data?.totalPages || 1,
+    total: data?.total || 0,
     loading,
-    error,
+    error: error instanceof Error ? error.message : null,
     success,
-    adding,
-    deletingId,
-    page,
-    totalPages,
-    total,
+    adding: addMutation.isPending,
+    deletingId: deleteMutation.isPending ? deleteMutation.variables : null,
     addProduct,
     deleteProduct,
-    refresh: fetchProducts,
+    refresh,
   };
 }

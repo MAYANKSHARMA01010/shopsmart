@@ -9,7 +9,7 @@ import type { Product } from "../../../features/products/types/productSchema";
 
 export default function WishlistPage() {
   const { items: rawItems, isLoading, error, fetchWishlist, clearWishlist, removeItem } = useWishlistStore();
-  const items = rawItems || [];
+  const items = (rawItems || []).filter(item => item && item.product);
   const { addItem: addToCart } = useCartStore();
   
   const [mounted, setMounted] = useState(false);
