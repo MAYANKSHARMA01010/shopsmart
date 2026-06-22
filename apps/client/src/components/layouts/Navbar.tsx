@@ -99,8 +99,8 @@ export function Navbar() {
               {/* Wishlist Link */}
               <li>
                 <Link
-                  href="/profile/wishlist"
-                  className={`nav-link${pathname === "/profile/wishlist" ? " active" : ""}`}
+                  href="/wishlist"
+                  className={`nav-link${pathname === "/wishlist" ? " active" : ""}`}
                   style={{
                     position: "relative",
                     display: "flex",

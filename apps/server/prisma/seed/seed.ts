@@ -174,7 +174,7 @@ const PRODUCTS: ProductSeed[] = [
       'Full-size mechanical keyboard with Cherry MX Red switches, RGB backlight, and aircraft-grade aluminium frame. Tactile, silent, and built for endurance.',
     basePrice: 7999.0,
     stock: 45,
-    images: ['https://picsum.photos/seed/kbd1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=kbd1'],
     categorySlug: 'electronics',
   },
   {
@@ -184,7 +184,7 @@ const PRODUCTS: ProductSeed[] = [
       'Ergonomic wireless mouse with 25,600 DPI, 70-hour battery life, and 2.4GHz + Bluetooth connectivity.',
     basePrice: 2499.0,
     stock: 80,
-    images: ['https://picsum.photos/seed/mouse1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=mouse1'],
     categorySlug: 'electronics',
   },
   {
@@ -194,7 +194,7 @@ const PRODUCTS: ProductSeed[] = [
       'IPS 4K UHD display, 144Hz refresh rate, HDR600, USB-C 65W power delivery. Built for creative professionals.',
     basePrice: 32999.0,
     stock: 12,
-    images: ['https://picsum.photos/seed/mon1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=mon1'],
     categorySlug: 'electronics',
   },
   {
@@ -204,7 +204,7 @@ const PRODUCTS: ProductSeed[] = [
       'Adjustable aluminium laptop stand, compatible with 10–17 inch laptops. Folds flat for portability.',
     basePrice: 1899.0,
     stock: 60,
-    images: ['https://picsum.photos/seed/stand1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=stand1'],
     categorySlug: 'electronics',
   },
   {
@@ -214,7 +214,7 @@ const PRODUCTS: ProductSeed[] = [
       '8-in-1 USB-C hub with 4K HDMI, 100W PD pass-through, SD card reader, 3× USB-A 3.0, Ethernet.',
     basePrice: 3299.0,
     stock: 35,
-    images: ['https://picsum.photos/seed/hub1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=hub1'],
     categorySlug: 'electronics',
   },
   // Clothing
@@ -224,7 +224,7 @@ const PRODUCTS: ProductSeed[] = [
     description: '100% organic cotton crew-neck T-shirt. Pre-shrunk, breathable, available in 8 colours.',
     basePrice: 799.0,
     stock: 200,
-    images: ['https://picsum.photos/seed/tee1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=tee1'],
     categorySlug: 'clothing',
   },
   {
@@ -234,7 +234,7 @@ const PRODUCTS: ProductSeed[] = [
       'Stretch slim-fit chinos in premium cotton blend. Wrinkle-resistant, 4-way stretch, ideal for office or casual wear.',
     basePrice: 1499.0,
     stock: 150,
-    images: ['https://picsum.photos/seed/chinos1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=chinos1'],
     categorySlug: 'clothing',
   },
   {
@@ -244,7 +244,7 @@ const PRODUCTS: ProductSeed[] = [
       'Lightweight running shoes with responsive foam midsole, breathable mesh upper, and durable rubber outsole.',
     basePrice: 4999.0,
     stock: 40,
-    images: ['https://picsum.photos/seed/shoe1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=shoe1'],
     categorySlug: 'clothing',
   },
   // Home & Garden
@@ -255,7 +255,7 @@ const PRODUCTS: ProductSeed[] = [
       'Minimalist solid walnut desk lamp with 3-level dimmer, USB charging port, and warm LED bulb included.',
     basePrice: 2199.0,
     stock: 25,
-    images: ['https://picsum.photos/seed/lamp1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=lamp1'],
     categorySlug: 'home-garden',
   },
   {
@@ -265,7 +265,7 @@ const PRODUCTS: ProductSeed[] = [
       'Fully adjustable ergonomic chair with lumbar support, 4D armrests, mesh back, and 5-year warranty.',
     basePrice: 18999.0,
     stock: 8,
-    images: ['https://picsum.photos/seed/chair1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=chair1'],
     categorySlug: 'home-garden',
   },
   // Sports
@@ -276,7 +276,7 @@ const PRODUCTS: ProductSeed[] = [
       '6mm thick non-slip yoga mat with alignment lines, eco-friendly TPE material, carrying strap included.',
     basePrice: 1299.0,
     stock: 100,
-    images: ['https://picsum.photos/seed/yoga1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=yoga1'],
     categorySlug: 'sports',
   },
   {
@@ -286,7 +286,7 @@ const PRODUCTS: ProductSeed[] = [
       'Pair of 10kg hex dumbbells with rubberised coating, anti-roll design, and textured grip handle.',
     basePrice: 2799.0,
     stock: 30,
-    images: ['https://picsum.photos/seed/dumbbell1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=dumbbell1'],
     categorySlug: 'sports',
   },
   // Toys
@@ -297,7 +297,7 @@ const PRODUCTS: ProductSeed[] = [
       '1500-piece LEGO Classic set with 33 colour bricks, 6 project idea booklet, ages 4+. Award-winning design.',
     basePrice: 3499.0,
     stock: 55,
-    images: ['https://picsum.photos/seed/lego1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=lego1'],
     categorySlug: 'toys',
   },
   // Books
@@ -308,7 +308,7 @@ const PRODUCTS: ProductSeed[] = [
       'James Clear — The #1 global bestseller on building good habits and breaking bad ones. Paperback, 320 pages.',
     basePrice: 499.0,
     stock: 120,
-    images: ['https://picsum.photos/seed/book1/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=book1'],
     categorySlug: 'books',
   },
   {
@@ -318,7 +318,7 @@ const PRODUCTS: ProductSeed[] = [
       'Robert C. Martin — A handbook of agile software craftsmanship. Essential reading for every software engineer.',
     basePrice: 899.0,
     stock: 65,
-    images: ['https://picsum.photos/seed/book2/400/400'],
+    images: ['https://placehold.co/400x400/1a1a2e/6c63ff?text=book2'],
     categorySlug: 'books',
   },
 ];
@@ -332,7 +332,7 @@ async function seedProducts(categoryMap: Map<string, string>, vendorId: string, 
     description: `This is an amazing vendor product ${i + 1} with fantastic features.`,
     basePrice: Math.floor(Math.random() * 5000) + 100,
     stock: Math.floor(Math.random() * 100) + 10,
-    images: [`https://picsum.photos/seed/vp${i + 1}/400/400`],
+    images: [`https://placehold.co/400x400/1a1a2e/6c63ff?text=vp${i + 1}`],
     categorySlug: categories[Math.floor(Math.random() * categories.length)],
   }));
 

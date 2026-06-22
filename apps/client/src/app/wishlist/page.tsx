@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useWishlistStore } from "../../../features/wishlist/store/wishlistStore";
-import { useCartStore } from "../../../features/cart/store/cartStore";
-import { ProductCard } from "../../../features/products/components/ProductCard";
-import type { Product } from "../../../features/products/types/productSchema";
+import { useWishlistStore } from "../../features/wishlist/store/wishlistStore";
+import { useCartStore } from "../../features/cart/store/cartStore";
+import { ProductCard } from "../../features/products/components/ProductCard";
+import type { Product } from "../../features/products/types/productSchema";
 
 export default function WishlistPage() {
   const { items: rawItems, isLoading, error, fetchWishlist, clearWishlist, removeItem } = useWishlistStore();
@@ -47,7 +47,7 @@ export default function WishlistPage() {
   }
 
   return (
-    <div>
+    <div className="container" style={{ padding: "2rem 0" }}>
       <div className="page-header" style={{ marginBottom: "2rem" }}>
         <div className="page-header-left">
           <h2 style={{ margin: 0 }}>My Wishlist</h2>

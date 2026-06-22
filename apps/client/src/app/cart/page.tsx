@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { ProductImage } from "../../features/products/components/ProductImage";
 import { useCartStore } from "../../features/cart/store/cartStore";
 import { formatPrice } from "../../features/products/types/productSchema";
 import { useRouter } from "next/navigation";
@@ -57,11 +57,12 @@ export default function CartPage() {
             {items.map((item) => (
               <div key={item.id} style={{ display: "flex", gap: "1.5rem", padding: "1.5rem", background: "var(--color-surface)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}>
                 <Link href={`/products/${item.productId}`} style={{ flexShrink: 0, display: "block", position: "relative", width: "100px", height: "100px", borderRadius: "var(--radius-sm)", overflow: "hidden", background: "var(--color-background)" }}>
-                  {item.product.images[0] ? (
-                    <Image src={item.product.images[0]} alt={item.product.name} fill style={{ objectFit: "cover" }} />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", color: "var(--color-text-muted)" }}>No Image</div>
-                  )}
+                  <ProductImage
+                    src={item.product.images?.[0]}
+                    alt={item.product.name}
+                    fill
+                    sizes="100px"
+                  />
                 </Link>
                 
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>

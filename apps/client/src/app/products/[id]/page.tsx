@@ -1,8 +1,8 @@
 "use client";
 
 import { use, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { ProductImage } from "../../../features/products/components/ProductImage";
 import { useProduct } from "../../../features/products/hooks/useProduct";
 import { formatPrice } from "../../../features/products/types/productSchema";
 import { useCartStore } from "../../../features/cart/store/cartStore";
@@ -80,11 +80,11 @@ export default function ProductDetailsPage({ params }: ProductPageProps) {
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <div style={{ position: "relative", width: "100%", aspectRatio: "1/1", backgroundColor: "var(--color-surface)", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
             {product.images.length > 0 ? (
-              <Image
+              <ProductImage
                 src={product.images[activeImageIndex]}
                 alt={product.name}
                 fill
-                style={{ objectFit: "cover" }}
+                sizes="(max-width: 768px) 100vw, 500px"
               />
             ) : (
               <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-muted)" }}>
@@ -115,7 +115,12 @@ export default function ProductDetailsPage({ params }: ProductPageProps) {
                     padding: 0
                   }}
                 >
-                  <Image src={img} alt={`Thumbnail ${idx + 1}`} fill style={{ objectFit: "cover" }} />
+                  <ProductImage
+                    src={img}
+                    alt={`Thumbnail ${idx + 1}`}
+                    fill
+                    sizes="80px"
+                  />
                 </button>
               ))}
             </div>

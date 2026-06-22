@@ -5,6 +5,7 @@ import Link from "next/link";
 import { orderService } from "../../../features/orders/services/orderService";
 import type { Order } from "../../../features/orders/types/orderSchema";
 import { formatPrice } from "../../../features/products/types/productSchema";
+import { ProductImage } from "../../../features/products/components/ProductImage";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -90,12 +91,14 @@ export default function OrdersPage() {
                 {order.items.slice(0, 4).map((item, idx) => (
                   <div key={idx} style={{ display: "flex", alignItems: "center", gap: "1rem", minWidth: "250px" }}>
                     <div style={{ width: "60px", height: "60px", borderRadius: "var(--radius-sm)", overflow: "hidden", background: "var(--color-background)", flexShrink: 0 }}>
-                      {item.product?.images?.[0] ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.product.images[0]} alt={item.product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      ) : (
-                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", color: "var(--color-text-muted)" }}>No Image</div>
-                      )}
+                      <div style={{ flexShrink: 0, position: "relative", width: "60px", height: "60px", borderRadius: "var(--radius-sm)", overflow: "hidden", background: "var(--color-background)" }}>
+                        <ProductImage
+                          src={item.product?.images?.[0]}
+                          alt={item.product?.name ?? "Product"}
+                          fill
+                          sizes="60px"
+                        />
+                      </div>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.product?.name || "Unknown Product"}</div>

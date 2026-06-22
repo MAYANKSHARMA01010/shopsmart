@@ -39,7 +39,6 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
   const navItems = [
     { label: "Personal Info", href: "/profile", icon: <User size={18} />, exact: true },
     { label: "My Orders", href: "/profile/orders", icon: <Package size={18} /> },
-    { label: "My Wishlist", href: "/profile/wishlist", icon: <Heart size={18} /> },
     { label: "Addresses", href: "/profile/addresses", icon: <MapPin size={18} /> },
     { label: "Security", href: "/profile/security", icon: <Shield size={18} /> },
   ];
