@@ -8,19 +8,19 @@ const envSchema = z.object({
   VITEST: z.string().optional(),
   SERVER_PORT: z.string().default('5001'),
   FRONTEND_LOCAL_URL: z.string().url().default('http://localhost:3000'),
-  FRONTEND_SERVER_URL: z.string().url().optional(),
+  FRONTEND_SERVER_URL: z.string().url(),
   BACKEND_LOCAL_URL: z.string().url().default('http://localhost:5001'),
-  BACKEND_SERVER_URL: z.string().url().optional(),
+  BACKEND_SERVER_URL: z.string().url(),
   
-  DATABASE_URL: z.string().url().optional(),
-  TEST_DATABASE_URL: z.string().url().optional(),
+  DATABASE_URL: z.string().url(),
+  TEST_DATABASE_URL: z.string().url(),
   
   REDIS_LOCAL_URL: z.string().url().default('redis://localhost:6379'),
-  REDIS_SERVER_URL: z.string().url().optional(),
+  REDIS_SERVER_URL: z.string().url(),
   
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
-  JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
+  JWT_ACCESS_EXPIRES_IN: z.string().default('1d'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   
   RAZORPAY_KEY_ID: z.string().min(5),
