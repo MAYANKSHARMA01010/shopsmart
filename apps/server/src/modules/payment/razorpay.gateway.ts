@@ -32,7 +32,7 @@ export class RazorpayGateway implements PaymentGateway {
       
       const options = {
         amount: amountInSubunits,
-        currency: params.currency || 'INR',
+        currency: params.currency || env.DEFAULT_CURRENCY || 'INR',
         receipt: params.orderId,
         notes: params.notes || {},
       };
