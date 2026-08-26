@@ -1,12 +1,13 @@
 import { AppError } from '../../shared/utils/AppError';
 import redis from '../../shared/utils/redis';
 import logger from '../../shared/utils/logger';
+import { env } from '../../shared/config/env';
 import type { CategoryCreateInput, CategoryNode, CategoryUpdateInput } from './category.types';
 import { categoryRepository, CategoryWithRelations } from './category.repository';
 
 class CategoryService {
   private readonly TREE_CACHE_KEY = 'categories:tree';
-  private readonly TREE_CACHE_TTL = 3600; // 1 hour
+  private readonly TREE_CACHE_TTL = Number(env.REDIS_CACHE_TTL_SECONDS);
 
   async getCategoryTree(): Promise<CategoryNode[]> {
     try {
