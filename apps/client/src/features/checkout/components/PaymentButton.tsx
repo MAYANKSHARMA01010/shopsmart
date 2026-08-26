@@ -38,8 +38,8 @@ export const PaymentButton: React.FC = () => {
       const options = {
         key: env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_12345',
         amount: orderData.total * 100, // paise
-        currency: 'USD', // or INR based on your pricing logic
-        name: 'ShopSmart',
+        currency: env.NEXT_PUBLIC_DEFAULT_CURRENCY || 'INR',
+        name: env.NEXT_PUBLIC_DEFAULT_APP_NAME || 'ShopSmart',
         description: 'Order Payment',
         order_id: checkoutRes.data.payment.gatewayOrderId,
         handler: async (response: any) => {
