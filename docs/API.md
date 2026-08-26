@@ -1,97 +1,99 @@
-# 🔌 ShopSmart API Documentation
+# 🔌 ShopSmart REST API Reference
 
-The ShopSmart Backend provides a RESTful API for managing products and checking system health.
-
-## Base URL
-*   **Local**: `http://localhost:5001/api`
-*   **Production**: `https://api.shopsmart.example.com/api`
+All backend API endpoints are prefixed with `/api/v1`. Every request and response uses JSON formatting.
 
 ---
 
-## 🏥 System Health
-Check if the server and database are running correctly.
+## Standard JSON Response Envelope
 
-### GET `/health`
-*   **Description**: Returns the health status of the backend and Redis connection.
-*   **Response (200 OK)**:
-    ```json
-    {
-      "status": "ok",
-      "message": "ShopSmart Backend is running",
-      "timestamp": "2026-04-26T17:00:00.000Z",
-      "database": "PostgreSQL",
-      "redis": "connected"
-    }
-    ```
-
----
-
-## 📦 Products
-Endpoints for managing the product catalog.
-
-### 1. List All Products
-*   **Endpoint**: `GET /products`
-*   **Query Parameters**:
-    *   `category` (optional): Filter by category (e.g., `electronics`, `clothing`).
-    *   `search` (optional): Search by name or description.
-*   **Response (200 OK)**:
-    ```json
-    [
-      {
-        "id": 1,
-        "name": "Mechanical Keyboard",
-        "description": "RGB Backlit, Brown Switches",
-        "price": 89.99,
-        "stock": 45,
-        "category": "electronics",
-        "imageUrl": "https://example.com/kb.jpg",
-        "createdAt": "2026-04-26T...",
-        "updatedAt": "2026-04-26T..."
-      }
-    ]
-    ```
-
-### 2. Get Product by ID
-*   **Endpoint**: `GET /products/:id`
-*   **Response (200 OK)**: A single product object.
-*   **Response (404 Not Found)**: `{"message": "Product not found"}`
-
-### 3. Create Product
-*   **Endpoint**: `POST /products`
-*   **Body**:
-    ```json
-    {
-      "name": "New Product",
-      "price": 29.99,
-      "category": "sports",
-      "stock": 100
-    }
-    ```
-*   **Response (201 Created)**: The created product object.
-
-### 4. Update Product
-*   **Endpoint**: `PUT /products/:id`
-*   **Body**: Partial product object.
-*   **Response (200 OK)**: The updated product object.
-
-### 5. Delete Product
-*   **Endpoint**: `DELETE /products/:id`
-*   **Response (200 OK)**: `{"message": "Product deleted successfully"}`
-
----
-
-## 🛠️ Error Handling
-The API uses standard HTTP status codes:
-*   `200`: Success
-*   `201`: Created
-*   `400`: Bad Request (Validation failed)
-*   `404`: Not Found
-*   `500`: Internal Server Error
-
-**Error Response Body**:
+### Success Response (`200 OK`, `201 Created`)
 ```json
 {
-  "status": "error",
-  "message": "Detailed error message here"
+  "success": true,
+  "data": { ... },
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 50
+  }
 }
 ```
+
+### Error Response (`400`, `401`, `403`, `404`, `500`)
+```json
+{
+  "success": false,
+  "message": "Error description here",
+  "errors": [
+    {
+      "field": "email",
+      "message": "Invalid email address format"
+    }
+  ]
+}
+```
+
+---
+
+## Core Endpoints
+
+### 🔐 Authentication (`/api/v1/auth`)
+
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/auth/register` | Register a new customer account | No |
+| `POST` | `/api/v1/auth/login` | Login with email/username + password | No |
+| `POST` | `/api/v1/auth/refresh` | Refresh an expired access token | No (Uses Refresh Token) |
+| `POST` | `/api/v1/auth/logout` | Revoke the active refresh token | Yes |
+| `GET` | `/api/v1/auth/me` | Fetch currently logged-in user profile | Yes |
+| `PUT` | `/api/v1/auth/profile` | Update profile information | Yes |
+
+---
+
+### 📦 Products & Categories (`/api/v1/products`, `/api/v1/categories`)
+
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/products` | Search and filter products with pagination | No |
+| `GET` | `/api/v1/products/:id` | Fetch product details by UUID | No |
+| `POST` | `/api/v1/products` | Create a new product (Vendor / Admin) | Yes (`products:create`) |
+| `PUT` | `/api/v1/products/:id` | Update product details (Vendor / Admin) | Yes (`products:update`) |
+| `DELETE` | `/api/v1/products/:id` | Delete a product (Admin only) | Yes (`products:delete`) |
+| `GET` | `/api/v1/categories` | Retrieve nested category tree | No |
+| `POST` | `/api/v1/categories` | Create a category (Admin only) | Yes (`categories:create`) |
+
+---
+
+### 🛒 Cart & Wishlist (`/api/v1/cart`, `/api/v1/wishlist`)
+
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/cart` | Get current user's active cart | Yes |
+| `POST` | `/api/v1/cart/items` | Add an item to cart (`productId`, `quantity`) | Yes |
+| `PUT` | `/api/v1/cart/items/:productId` | Update item quantity in cart | Yes |
+| `DELETE` | `/api/v1/cart/items/:productId` | Remove an item from cart | Yes |
+| `POST` | `/api/v1/cart/merge` | Merge anonymous guest cart into user cart | Yes |
+| `GET` | `/api/v1/wishlist` | Get user's saved wishlist products | Yes |
+| `POST` | `/api/v1/wishlist/:productId` | Add a product to wishlist | Yes |
+| `DELETE` | `/api/v1/wishlist/:productId` | Remove a product from wishlist | Yes |
+
+---
+
+### 💳 Checkout & Payments (`/api/v1/checkout`, `/api/v1/payment`)
+
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/checkout/initialize` | Initialize checkout, lock stock & create Razorpay order | Yes |
+| `POST` | `/api/v1/checkout/verify` | Verify Razorpay HMAC signature & confirm order | Yes |
+| `POST` | `/api/v1/payment/webhook` | Razorpay webhook receiver (`payment.captured`, `payment.failed`) | Webhook HMAC Header |
+
+---
+
+### 📋 Orders (`/api/v1/orders`)
+
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/orders/my-orders` | List past orders for logged-in customer | Yes |
+| `GET` | `/api/v1/orders/:id` | Get details of a single order | Yes |
+| `GET` | `/api/v1/orders` | List all orders across platform (Admin only) | Yes (`orders:read`) |
+| `PATCH` | `/api/v1/orders/:id/status` | Transition order status (Admin only) | Yes (`orders:update`) |
