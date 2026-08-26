@@ -14,19 +14,23 @@ vi.mock('../src/modules/payment/razorpay.gateway', () => {
 });
 
 describe('PaymentService', () => {
-  it('resolves RAZORPAY provider successfully', () => {
+  it('resolves RAZORPAY provider successfully by default', () => {
+    const service = new PaymentService();
+    expect(service).toBeDefined();
+  });
+
+  it('resolves RAZORPAY provider explicitly', () => {
     const service = new PaymentService('RAZORPAY');
     expect(service).toBeDefined();
   });
 
-  it('throws AppError for unsupported STRIPE implementation', async () => {
-    const service = new PaymentService('STRIPE');
-    await expect(service.healthCheck()).rejects.toThrow(AppError);
-    await expect(service.healthCheck()).rejects.toThrow('Stripe integration is not implemented');
+  it('throws AppError for unsupported STRIPE provider', () => {
+    expect(() => new PaymentService('STRIPE')).toThrow(AppError);
+    expect(() => new PaymentService('STRIPE')).toThrow('Only Razorpay is supported in this deployment');
   });
 
   it('throws AppError for unknown provider', () => {
-    // @ts-expect-error testing invalid input
     expect(() => new PaymentService('PAYPAL')).toThrow(AppError);
+    expect(() => new PaymentService('PAYPAL')).toThrow('Only Razorpay is supported in this deployment');
   });
 });
