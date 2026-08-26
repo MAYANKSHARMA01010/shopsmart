@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.28.2",
   "scripts": {
-    "dev": "pnpm --parallel -r dev",
+    "dev": "bash scripts/dev.sh",
     "dev:server": "pnpm --filter shopsmart-server dev",
     "dev:client": "pnpm --filter shopsmart-frontend dev",
     "build": "pnpm --parallel -r build",
