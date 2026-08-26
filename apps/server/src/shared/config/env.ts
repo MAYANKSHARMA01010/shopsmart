@@ -7,27 +7,54 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   VITEST: z.string().optional(),
   SERVER_PORT: z.string().default('5001'),
+  
+  // URLs & Domains
   FRONTEND_LOCAL_URL: z.string().url().default('http://localhost:3000'),
-  FRONTEND_SERVER_URL: z.string().url(),
+  FRONTEND_SERVER_URL: z.string().url().optional(),
   BACKEND_LOCAL_URL: z.string().url().default('http://localhost:5001'),
-  BACKEND_SERVER_URL: z.string().url(),
+  BACKEND_SERVER_URL: z.string().url().optional(),
   
-  DATABASE_URL: z.string().url(),
-  TEST_DATABASE_URL: z.string().url(),
+  // Databases
+  DATABASE_URL: z.string().url().optional(),
+  TEST_DATABASE_URL: z.string().url().optional(),
   
+  // Redis & Caching
   REDIS_LOCAL_URL: z.string().url().default('redis://localhost:6379'),
-  REDIS_SERVER_URL: z.string().url(),
+  REDIS_SERVER_URL: z.string().url().optional(),
+  REDIS_CACHE_TTL_SECONDS: z.string().default('3600'),
   
+  // Authentication & Security
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
-  JWT_ACCESS_EXPIRES_IN: z.string().default('1d'),
+  JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+  BCRYPT_SALT_ROUNDS: z.string().default('12'),
+
+  // Rate Limiting
+  RATE_LIMIT_WINDOW_MS: z.string().default('900000'), // 15 minutes
+  RATE_LIMIT_MAX_REQUESTS: z.string().default('100'),
+  AUTH_RATE_LIMIT_MAX_REQUESTS: z.string().default('15'),
+  HEALTHCHECK_RATE_LIMIT_WINDOW_MS: z.string().default('60000'), // 1 minute
+  HEALTHCHECK_RATE_LIMIT_MAX: z.string().default('60'),
+
+  // Checkout & Transactions
+  DEFAULT_CURRENCY: z.string().default('INR'),
+  CHECKOUT_TX_TIMEOUT_MS: z.string().default('20000'),
+  CHECKOUT_TX_MAX_WAIT_MS: z.string().default('10000'),
   
+  // Payment Gateway (Razorpay)
   RAZORPAY_KEY_ID: z.string().min(5),
   RAZORPAY_KEY_SECRET: z.string().min(5),
   RAZORPAY_WEBHOOK_SECRET: z.string().min(5),
+
+  // Email (SMTP)
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().default('587'),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().default('ShopSmart <no-reply@shopsmart.local>'),
   
-  BCRYPT_SALT_ROUNDS: z.string().default('12'),
+  // Logging
   LOG_LEVEL: z.string().default('info'),
   LOG_FORMAT: z.string().default('text'),
 }).superRefine((data, ctx) => {
