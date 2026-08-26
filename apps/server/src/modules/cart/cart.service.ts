@@ -1,12 +1,13 @@
 import { AppError } from '../../shared/utils/AppError';
 import redis from '../../shared/utils/redis';
 import logger from '../../shared/utils/logger';
+import { env } from '../../shared/config/env';
 import { Prisma } from '@prisma/client';
 import { CartWithItems, CartResponseDto } from './cart.types';
 import { cartRepository } from './cart.repository';
 
 class CartService {
-  private readonly CACHE_TTL = 3600; // 1 hour
+  private readonly CACHE_TTL = Number(env.REDIS_CACHE_TTL_SECONDS);
 
   /**
    * Helper to invalidate Redis cache for a user's cart.
