@@ -2,6 +2,7 @@ import { Prisma, OrderStatus, PaymentGatewayProvider } from '@prisma/client';
 import { AppError } from '../../shared/utils/AppError';
 import { PaymentService } from '../payment/payment.service';
 import logger from '../../shared/utils/logger';
+import { env } from '../../shared/config/env';
 import { checkoutRepository } from './checkout.repository';
 
 export interface OrderContext {
@@ -15,6 +16,11 @@ export interface OrderContext {
 export class CheckoutService {
   async initializeCheckout(context: OrderContext) {
     const { userId, addressId, gatewayProvider, couponCode, notes } = context;
+
+    if (gatewayProvider !== PaymentGatewayProvider.RAZORPAY) {
+      throw new AppError('Only Razorpay is supported at this time', 400);
+    }
+
     // 1. Validate Cart
     const cart = await checkoutRepository.findCartByUserId(userId);
 
@@ -138,8 +144,8 @@ export class CheckoutService {
       return order;
     },
     {
-      maxWait: 10000,
-      timeout: 20000
+      maxWait: Number(env.CHECKOUT_TX_MAX_WAIT_MS),
+      timeout: Number(env.CHECKOUT_TX_TIMEOUT_MS)
     });
 
     // 11. Payment Gateway Abstraction
@@ -147,7 +153,7 @@ export class CheckoutService {
     const paymentResponse = await paymentService.createOrder({
       orderId: orderData.id,
       amount: orderData.totalAmount,
-      currency: 'INR'
+      currency: env.DEFAULT_CURRENCY
     });
 
     const paymentRecord = await checkoutRepository.createPaymentRecord({
@@ -155,7 +161,7 @@ export class CheckoutService {
       gateway: gatewayProvider,
       gatewayOrderId: paymentResponse.gatewayOrderId,
       amount: orderData.totalAmount,
-      currency: 'INR',
+      currency: env.DEFAULT_CURRENCY,
       rawResponse: paymentResponse.rawResponse as Prisma.InputJsonValue
     });
 

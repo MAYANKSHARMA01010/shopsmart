@@ -4,9 +4,13 @@ import { Request, Response, NextFunction } from 'express';
 
 export const checkoutInitSchema = z.object({
   addressId: z.string().uuid('Valid Address ID is required'),
-  gatewayProvider: z.nativeEnum(PaymentGatewayProvider, {
-    errorMap: () => ({ message: 'Invalid payment gateway provider' })
-  }),
+  gatewayProvider: z
+    .nativeEnum(PaymentGatewayProvider, {
+      errorMap: () => ({ message: 'Invalid payment gateway provider' })
+    })
+    .refine((provider) => provider === PaymentGatewayProvider.RAZORPAY, {
+      message: 'Only Razorpay is supported at this time'
+    }),
   couponCode: z.string().optional(),
   notes: z.string().optional()
 });
