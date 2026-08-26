@@ -4,9 +4,6 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import logger from './shared/utils/logger';
-import swaggerUi from "swagger-ui-express";
-import YAML from "yamljs";
-import path from "path";
 import productRoutes from './modules/product/product.routes';
 import categoryRoutes from './modules/categories/category.routes';
 import cartRoutes from './modules/cart/cart.routes';
@@ -24,7 +21,11 @@ import prisma from './shared/config/database';
 import helmet from 'helmet';
 import { globalRateLimiter } from './shared/middleware/rateLimit.middleware';
 import authRoutes from './modules/auth/auth.routes';
-import './workers/paymentWebhook.worker';
+import addressRoutes from './modules/address/address.routes';
+
+if (env.NODE_ENV !== 'test') {
+  import('./workers/paymentWebhook.worker');
+}
 
 const app = express();
 const PORT = env.SERVER_PORT || 5001;
@@ -41,8 +42,8 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/favicon.ico', (req: Request, res: Response) => { res.status(204).end(); });
 
 const healthCheckLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 60, // limit each IP to 60 requests per window
+  windowMs: Number(env.HEALTHCHECK_RATE_LIMIT_WINDOW_MS),
+  limit: Number(env.HEALTHCHECK_RATE_LIMIT_MAX),
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -80,16 +81,6 @@ app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'ShopSmart Backend Service v4 (TypeScript + Redis)', version: '4.0.0' });
 });
 
-// Swagger Documentation
-try {
-  const swaggerDocument = YAML.load(path.join(__dirname, "../../docs/api/openapi.yaml"));
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-} catch {
-  console.warn("Swagger spec could not be loaded. Please ensure docs/api/openapi.yaml exists.");
-}
-
-import addressRoutes from './modules/address/address.routes';
-
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/products', productRoutes);
@@ -102,7 +93,6 @@ app.use('/api/v1/addresses', addressRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/users', userRoutes);
-app.use('/api/v1/addresses', addressRoutes);
 
 // Error Handling
 app.use(routeNotFoundHandler);
