@@ -31,7 +31,6 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    // eslint-disable-next-line
     setMounted(true);
   }, []);
 
