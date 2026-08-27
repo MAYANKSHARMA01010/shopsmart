@@ -1,56 +1,148 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Master Script to Sync all .env secrets to GitHub
-# Required: GitHub CLI (gh) installed and authenticated.
+# ==============================================================================
+# ShopSmart - Master GitHub Secrets Sync Utility
+# Syncs all environment secrets from root .env to GitHub Actions Secrets.
+# Requires: GitHub CLI (`gh auth login`)
+# ==============================================================================
 
-# Configuration - Update this if your repo name is different
+set -e
+
 REPO="MAYANKSHARMA01010/shopsmart"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="$ROOT_DIR/.env"
 
-# Function to extract from .env
-get_from_env() {
-    grep "^$1=" .env | cut -d'=' -f2 | sed 's/^"//;s/"$//' | sed "s/^'//;s/'$//"
-}
-
-if [ ! -f .env ]; then
-    echo "❌ Error: .env file not found in the current directory."
+if [ ! -f "$ENV_FILE" ]; then
+    echo "❌ Error: .env file not found at $ENV_FILE"
     exit 1
 fi
 
 if ! command -v gh &> /dev/null; then
-    echo "❌ Error: GitHub CLI (gh) is not installed."
+    echo "❌ Error: GitHub CLI ('gh') is not installed or not in PATH."
+    echo "👉 Install with: brew install gh && gh auth login"
     exit 1
 fi
 
-echo "🔄 Starting Master Sync for $REPO..."
+echo "======================================================================"
+echo "   🔄 Syncing ShopSmart Secrets to GitHub ($REPO)                     "
+echo "======================================================================"
 
-# List of all secrets to sync
-SECRETS=(
+# Python helper to accurately extract single-line & multi-line values from .env
+sync_secret() {
+    local secret_name="$1"
+    
+    local secret_val
+    secret_val=$(python3 -c "
+import os, sys
+
+def get_env_val(key, file_path):
+    if not os.path.exists(file_path):
+        return ''
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    # Simple multi-line dotenv parser
+    lines = content.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if not line or line.startswith('#'):
+            i += 1
+            continue
+        if '=' in line:
+            k, v = line.split('=', 1)
+            k = k.strip()
+            if k == key:
+                v = v.strip()
+                if v.startswith('\"') and not (v.endswith('\"') and len(v) > 1 and not v.endswith('\\\\\"')):
+                    # Multi-line string
+                    collected = [v[1:]]
+                    i += 1
+                    while i < len(lines):
+                        cur = lines[i]
+                        if cur.endswith('\"'):
+                            collected.append(cur[:-1])
+                            break
+                        else:
+                            collected.append(cur)
+                        i += 1
+                    return '\n'.join(collected)
+                elif v.startswith('\"') and v.endswith('\"'):
+                    return v[1:-1]
+                elif v.startswith('\'') and v.endswith('\''):
+                    return v[1:-1]
+                else:
+                    return v
+        i += 1
+    return ''
+
+val = get_env_val('$secret_name', '$ENV_FILE')
+if val:
+    sys.stdout.write(val)
+")
+
+    if [ -n "$secret_val" ]; then
+        echo "  -> 🔐 Syncing $secret_name..."
+        echo "$secret_val" | gh secret set "$secret_name" --repo "$REPO"
+    else
+        echo "  -  ⚠️  Skipping $secret_name (empty or not defined in .env)"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# List of all standard secrets to sync
+# ------------------------------------------------------------------------------
+SECRETS_TO_SYNC=(
+    # AWS Cloud Infrastructure
     "AWS_REGION"
+    "AWS_ACCOUNT_ID"
     "AWS_ACCESS_KEY_ID"
     "AWS_SECRET_ACCESS_KEY"
     "AWS_SESSION_TOKEN"
-    "AWS_ACCOUNT_ID"
-    "DATABASE_URL"
-    "DOCKERHUB_USERNAME"
-    "DOCKERHUB_PASSWORD"
+    "AWS_EC2_INSTANCE_ID"
+    "AWS_EC2_HOST"
+    "AWS_EC2_USER"
+    "AWS_EC2_KEY_NAME"
+    "AWS_EC2_SECURITY_GROUP_ID"
+    "AWS_EC2_SSH_KEY"
     "EC2_HOST"
     "EC2_USER"
     "EC2_SSH_KEY"
-    "EC2_SECURITY_GROUP_ID"
+
+    # Database & Redis Connections
+    "DATABASE_URL"
+    "TEST_DATABASE_URL"
+    "REDIS_LOCAL_URL"
+    "REDIS_SERVER_URL"
+
+    # Authentication & JWT
+    "JWT_SECRET"
+    "JWT_ACCESS_SECRET"
+    "JWT_REFRESH_SECRET"
+
+    # Razorpay Payment Gateway
+    "RAZORPAY_KEY_ID"
+    "RAZORPAY_KEY_SECRET"
+    "RAZORPAY_WEBHOOK_SECRET"
+    "NEXT_PUBLIC_RAZORPAY_KEY_ID"
+
+    # Transactional Email (SMTP)
+    "SMTP_HOST"
+    "SMTP_PORT"
+    "SMTP_USER"
+    "SMTP_PASS"
+    "SMTP_FROM"
+
+    # Container Registry
+    "DOCKERHUB_USERNAME"
+    "DOCKERHUB_PASSWORD"
 )
 
-for SECRET in "${SECRETS[@]}"; do
-    VALUE=$(get_from_env "$SECRET")
-    
-    # Trim whitespace and check if not empty
-    TRIMMED=$(echo "$VALUE" | xargs)
-    
-    if [ -n "$TRIMMED" ]; then
-        echo "  -> Syncing $SECRET..."
-        gh secret set "$SECRET" --body "$TRIMMED" --repo "$REPO"
-    else
-        echo "  -  Skipping $SECRET (empty or not found in .env)"
-    fi
+for secret in "${SECRETS_TO_SYNC[@]}"; do
+    sync_secret "$secret"
 done
 
-echo "✅ All secrets have been synchronized to GitHub!"
+echo ""
+echo "======================================================================"
+echo "   ✅ All Secrets Synchronized Successfully to GitHub ($REPO)!       "
+echo "======================================================================"
