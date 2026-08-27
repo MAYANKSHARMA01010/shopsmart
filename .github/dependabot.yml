@@ -1,23 +1,117 @@
+# ==============================================================================
+# Dependabot Configuration
+# Repository: shopsmart (pnpm Workspaces Monorepo)
+# ==============================================================================
+
 version: 2
 updates:
+  # 1. Root Workspace & Turborepo Dependencies
   - package-ecosystem: "npm"
-    directory: "/server"
+    directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps-root)"
+    groups:
+      dev-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
+  # 2. Server Application (Express 5 + Prisma)
   - package-ecosystem: "npm"
-    directory: "/client"
+    directory: "/apps/server"
     schedule:
       interval: "weekly"
+      day: "monday"
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps-server)"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
-  - package-ecosystem: "terraform"
-    directory: "/terraform"
+  # 3. Client Application (Next.js 16 + React 19)
+  - package-ecosystem: "npm"
+    directory: "/apps/client"
     schedule:
       interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps-client)"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
+  # 4. Shared API Contracts Package
+  - package-ecosystem: "npm"
+    directory: "/packages/api-contracts"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps-contracts)"
+
+  # 5. Shared Logger Package
+  - package-ecosystem: "npm"
+    directory: "/packages/logger"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps-logger)"
+
+  # 6. Shared Observability Package
+  - package-ecosystem: "npm"
+    directory: "/packages/observability"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps-observability)"
+
+  # 7. Shared Utils Package
+  - package-ecosystem: "npm"
+    directory: "/packages/shared-utils"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps-utils)"
+
+  # 8. GitHub Actions Workflows
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps-actions)"
+
+  # 9. Terraform AWS Infrastructure
+  - package-ecosystem: "terraform"
+    directory: "/terraform"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps-terraform)"
