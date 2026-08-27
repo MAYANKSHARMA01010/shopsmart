@@ -1,0 +1,139 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # 1. Quality Gates: Linting & Typechecking
+  # ----------------------------------------------------------------------------
+  quality:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter shopsmart-server db:generate
+
+      - name: Run Workspace Lint & Typecheck
+        run: pnpm turbo run lint typecheck
+
+  # ----------------------------------------------------------------------------
+  # 2. Automated Test Suite (Frontend + Backend with Redis Service)
+  # ----------------------------------------------------------------------------
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter shopsmart-server db:generate
+
+      - name: Run Backend & Frontend Vitest Suites
+        env:
+          NODE_ENV: test
+          VITEST: "true"
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          REDIS_LOCAL_URL: redis://localhost:6379
+          JWT_ACCESS_SECRET: 4c516ef3b028d8ad433ae276050345c11fced19e7f1d6ba2453db98d5e4f7da03ac4aa25ef726ad67636bb06abfa4ef8917554ad8a421277a72b6d5bd467630b
+          JWT_REFRESH_SECRET: 756611d94e50727a5d88fdca19244d50c123a5fccaaaf31326ba8392f8739032098f434b506466f4802fb49464473643cbf52b1cc60abcb00a31d41cfe786256
+          RAZORPAY_KEY_ID: rzp_test_TUdtEncDnM7HM0
+          RAZORPAY_KEY_SECRET: JJKaBe1zV64pvl8tr78lLmVa
+          RAZORPAY_WEBHOOK_SECRET: 6ufYqqyhX94ep8n
+        run: pnpm turbo run test
+
+  # ----------------------------------------------------------------------------
+  # 3. Production Build Verification
+  # ----------------------------------------------------------------------------
+  build:
+    name: Production Build
+    needs: [quality]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify Full Workspace Build
+        run: pnpm turbo run build
+
+  # ----------------------------------------------------------------------------
+  # 4. Dependency Security Audit
+  # ----------------------------------------------------------------------------
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Run pnpm audit
+        run: pnpm audit --audit-level=high || true
