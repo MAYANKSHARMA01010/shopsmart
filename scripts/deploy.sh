@@ -1,73 +1,80 @@
-#!/bin/bash
-# Idempotent Deployment Script for ShopSmart
-# This script can be run safely multiple times without causing errors or duplicating processes.
+#!/usr/bin/env bash
 
-# Load nvm and use correct Node version
+# ==============================================================================
+# ShopSmart - Idempotent Production Deployment Script
+# ==============================================================================
+
+set -e
+
+# Load nvm and use correct Node version if present
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-nvm use default
+command -v nvm &>/dev/null && nvm use default 2>/dev/null || true
 
-set -e # Exit on any error
+APP_DIR="${APP_DIR:-$HOME/shopsmart}"
 
-APP_DIR="$HOME/shopsmart"
+echo "======================================================================"
+echo "      🚀 Starting ShopSmart Deployment at $APP_DIR                    "
+echo "======================================================================"
 
-# 1. Idempotent Directory Creation
-echo "=> Ensuring application directories exist..."
+# 1. Directory Structure
+echo "=> Ensuring log directories exist..."
 mkdir -p "$APP_DIR/logs"
 
 # 2. Navigate to app directory
 cd "$APP_DIR" || exit 1
 
-# 3. Pull latest changes (assuming git is already initialized)
+# 3. Pull latest changes
 echo "=> Pulling latest changes from main branch..."
-git pull origin main || echo "Git pull failed, continuing local deployment..."
+git pull origin main || echo "Git pull skipped or failed, continuing deployment..."
 
-# 4. Install dependencies securely based on lockfile
-echo "=> Installing dependencies..."
+# 4. Install dependencies
+echo "=> Installing monorepo dependencies..."
 pnpm install --frozen-lockfile
 
-# 5. Database Setup (Idempotent push/migrate)
-echo "=> Syncing database schema..."
-cd server
-pnpm prisma db push --accept-data-loss
-cd ..
+# 5. Database Setup
+echo "=> Generating Prisma client & running migrations..."
+pnpm --filter shopsmart-server db:generate
+pnpm --filter shopsmart-server db:migrate
 
-# 6. Build Frontend
-echo "=> Building Next.js application..."
-cd client
-pnpm build
-cd ..
+# 6. Build Packages & Apps
+echo "=> Building workspace packages and Next.js frontend..."
+pnpm turbo run build
 
-# 7. Restart Backend Service (Idempotent PM2 or kill-start logic)
-echo "=> Restarting Backend Service..."
-cd server
+# 7. Restart Backend Service safely
+echo "=> Restarting Backend Service on Port 5001..."
 if lsof -Pi :5001 -sTCP:LISTEN -t >/dev/null ; then
-    echo "Port 5001 in use. Killing existing backend process safely..."
-    lsof -ti :5001 | xargs kill -15
-    sleep 2 # Wait for graceful shutdown
-fi
-
-# Ensure it actually stopped, force kill if needed
-if lsof -Pi :5001 -sTCP:LISTEN -t >/dev/null ; then
-    lsof -ti :5001 | xargs kill -9
-fi
-
-# Start the server in the background and pipe logs
-nohup pnpm start > ../logs/server.log 2>&1 &
-echo "=> Backend started on port 5001."
-cd ..
-
-# 8. Restart Frontend Service
-echo "=> Restarting Frontend Service..."
-cd client
-if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null ; then
-    echo "Port 3000 in use. Killing existing frontend process safely..."
-    lsof -ti :3000 | xargs kill -15
+    echo "Port 5001 in use. Terminating existing process safely..."
+    lsof -ti :5001 | xargs kill -15 2>/dev/null || true
     sleep 2
 fi
 
-nohup pnpm start > ../logs/client.log 2>&1 &
-echo "=> Frontend started on port 3000."
-cd ..
+if lsof -Pi :5001 -sTCP:LISTEN -t >/dev/null ; then
+    lsof -ti :5001 | xargs kill -9 2>/dev/null || true
+fi
 
-echo "=> Deployment completed successfully!"
+cd "$APP_DIR/apps/server"
+nohup pnpm start > "$APP_DIR/logs/server.log" 2>&1 &
+echo "=> Backend started on port 5001 (logs: logs/server.log)."
+cd "$APP_DIR"
+
+# 8. Restart Frontend Service safely
+echo "=> Restarting Frontend Service on Port 3000..."
+if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null ; then
+    echo "Port 3000 in use. Terminating existing process safely..."
+    lsof -ti :3000 | xargs kill -15 2>/dev/null || true
+    sleep 2
+fi
+
+if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null ; then
+    lsof -ti :3000 | xargs kill -9 2>/dev/null || true
+fi
+
+cd "$APP_DIR/apps/client"
+nohup pnpm start > "$APP_DIR/logs/client.log" 2>&1 &
+echo "=> Frontend started on port 3000 (logs: logs/client.log)."
+cd "$APP_DIR"
+
+echo "======================================================================"
+echo "      ✅ ShopSmart Deployment Completed Successfully!                 "
+echo "======================================================================"
