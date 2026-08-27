@@ -1,0 +1,68 @@
+# ==============================================================================
+# CodeRabbit AI Code Review Configuration
+# Repository: shopsmart (Full-Stack Monorepo)
+# ==============================================================================
+
+version: "2"
+language: "en-US"
+tone_instructions: "Act as a Senior Staff Software Engineer and architect. Provide concise, constructive, actionable feedback with code suggestions. Focus on high-signal architectural invariants, security, race conditions, type safety, and monetary precision."
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  sequence_diagrams: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+      - "develop"
+
+  path_filters:
+    - "!node_modules/**"
+    - "!.next/**"
+    - "!dist/**"
+    - "!build/**"
+    - "!coverage/**"
+    - "!*.lock"
+    - "!pnpm-lock.yaml"
+    - "!*.tsbuildinfo"
+    - "!docs/archive/**"
+
+  path_instructions:
+    - path: "apps/server/src/modules/**"
+      instructions: |
+        - Ensure strict Layered DDD architecture: Routes -> Controllers (thin, wrapped in catchAsync) -> Services (business logic & transactions) -> Repositories/Prisma.
+        - Ensure Prisma is NEVER imported directly in route or controller files.
+        - Monetary amounts MUST use `Prisma.Decimal` (PostgreSQL Decimal(10,2)). Never use JavaScript float/number for financial math.
+        - Check that `OrderStateMachine.transition` is used for all order status mutations.
+        - Ensure `OrderAuditLog` entries are recorded in the same transaction as order state changes.
+        - Verify PBAC permissions are enforced with `requirePermission(...)` guards.
+
+    - path: "apps/server/src/modules/checkout/**"
+      instructions: |
+        - Inventory stock deductions MUST use PostgreSQL `SELECT ... FOR UPDATE` row locks within Prisma `$transaction`.
+        - Product IDs MUST be sorted alphabetically before locking to prevent circular deadlocks under concurrent checkouts.
+
+    - path: "apps/server/src/modules/payment/**"
+      instructions: |
+        - Payment gateway abstraction must strictly enforce Razorpay.
+        - Webhook signatures MUST be verified using HMAC SHA-256 with raw request body (`express.raw()`).
+        - Repeated webhooks must be deduplicated via `ProcessedWebhook` database entries.
+
+    - path: "apps/client/src/**"
+      instructions: |
+        - Next.js 16 App Router best practices: Default to Server Components (RSC); use `'use client'` only where interactive state or hooks are needed.
+        - Server state must be managed with TanStack Query; UI state with Zustand.
+        - Prices should render with the configured currency symbol (INR / ₹).
+        - Images should use optimized Next.js Image components with proper aspect ratios.
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  learnings:
+    enabled: true
