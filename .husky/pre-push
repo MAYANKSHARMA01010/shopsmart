@@ -1,5 +1,5 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-echo "Running pre-push checks..."
-pnpm turbo run test build
+# Pre-push checks are handled automatically by GitHub Actions CI (.github/workflows/ci.yml)
+exit 0
