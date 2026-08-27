@@ -1,4 +1,5 @@
 import prisma from '../../shared/config/database';
+import { AppError } from '../../shared/utils/AppError';
 
 export const addressService = {
   async getUserAddresses(userId: string) {
@@ -14,7 +15,7 @@ export const addressService = {
     });
     
     if (!address || address.userId !== userId) {
-      throw new Error('Address not found or unauthorized');
+      throw new AppError('Address not found or unauthorized', 404);
     }
     
     return address;
@@ -69,7 +70,7 @@ export const addressService = {
     // Verify ownership
     const existing = await prisma.address.findUnique({ where: { id: addressId } });
     if (!existing || existing.userId !== userId) {
-      throw new Error('Address not found or unauthorized');
+      throw new AppError('Address not found or unauthorized', 404);
     }
 
     if (data.isDefault) {
@@ -89,7 +90,7 @@ export const addressService = {
     // Verify ownership
     const existing = await prisma.address.findUnique({ where: { id: addressId } });
     if (!existing || existing.userId !== userId) {
-      throw new Error('Address not found or unauthorized');
+      throw new AppError('Address not found or unauthorized', 404);
     }
 
     await prisma.address.delete({
@@ -111,3 +112,4 @@ export const addressService = {
     }
   }
 };
+
