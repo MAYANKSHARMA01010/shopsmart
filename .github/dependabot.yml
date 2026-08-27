@@ -108,7 +108,7 @@ updates:
 
   # 9. Terraform AWS Infrastructure
   - package-ecosystem: "terraform"
-    directory: "/terraform"
+    directory: "/infra/terraform"
     schedule:
       interval: "weekly"
       day: "monday"
