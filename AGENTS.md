@@ -9,34 +9,61 @@
 
 ## 1. System Identity & Monorepo Topology
 
-**ShopSmart** is an enterprise-grade, high-concurrency e-commerce engine designed to eliminate race conditions (overselling), enforce strict transactional boundaries, provide provider-agnostic payment abstractions, and deliver sub-millisecond cached responses.
+**ShopSmart** is an enterprise-grade, high-concurrency e-commerce engine designed to eliminate race conditions (overselling), enforce strict transactional boundaries, provide unified Razorpay payment processing, and deliver sub-millisecond cached responses.
 
 ### Monorepo Structure (`pnpm` Workspaces + Turborepo)
 ```
 shopsmart/
 ├── apps/
-│   ├── client/                  # Next.js 16 (App Router) + React 19 + Zustand + React Query
-│   │   ├── src/app/             # App Router pages, layouts, and route handlers
-│   │   ├── src/features/        # Domain features (auth, cart, checkout, products, etc.)
+│   ├── client/                  # Next.js 16 (App Router) + React 19 + Zustand + React Query + Tailwind
+│   │   ├── src/app/             # App Router pages, layouts, error boundaries, and route handlers
+│   │   ├── src/features/        # Domain features (auth, cart, checkout, orders, products, wishlist)
 │   │   ├── src/components/      # Shared presentation UI components & layouts
-│   │   └── src/lib/             # API client, environment validation, utilities
-│   └── server/                  # Express 5 + TypeScript + Prisma ORM + BullMQ
+│   │   └── src/lib/             # API client (Axios), environment validation, utilities
+│   └── server/                  # Express 5 + TypeScript + Prisma ORM + BullMQ + Nodemailer
 │       ├── prisma/              # schema.prisma, migrations, seed scripts
 │       └── src/
 │           ├── modules/         # Domain-Driven Design (DDD) feature modules
-│           ├── shared/          # Middleware, config, logger, utils, types
-│           ├── queues/          # BullMQ queue producers
-│           └── workers/         # BullMQ queue background consumers
+│           │   ├── address/     # User delivery addresses & validation
+│           │   ├── auth/        # PBAC / RBAC authentication & token rotation
+│           │   ├── cart/        # Redis & DB cart synchronizers
+│           │   ├── category/    # Product taxonomy management
+│           │   ├── checkout/    # Concurrency-safe order placement & row-locks
+│           │   ├── coupons/     # Promotional discount engines
+│           │   ├── orders/      # State machine lifecycle & audit logging
+│           │   ├── payment/     # Razorpay gateway adapter & HMAC webhook handler
+│           │   ├── products/    # Product catalog, variants & inventory
+│           │   ├── reviews/     # Verified buyer reviews & ratings
+│           │   ├── upload/      # Secure media upload pipeline
+│           │   ├── user/        # Profile & account management
+│           │   └── wishlist/    # Customer wishlists
+│           ├── shared/          # Middleware, config, logger, utils, types, errors
+│           ├── queues/          # BullMQ queue producers (payment webhook queue)
+│           └── workers/         # BullMQ queue background consumers & transactional email hooks
 ├── packages/
 │   ├── api-contracts/           # Shared Zod schemas, DTOs & API interfaces
 │   ├── config/                  # Shared ESLint, Prettier, and TypeScript configs
 │   ├── logger/                  # Shared structured Winston / Pino logger wrapper
 │   ├── observability/           # OpenTelemetry & metrics hooks
 │   └── shared-utils/            # Currency math, slug generation, date helpers
-├── docs/                        # Architecture specs, ADRs, sequence flows, guides
+├── infra/
+│   ├── k8s/                     # Kubernetes manifests & deployment specs
+│   └── terraform/               # AWS Cloud infrastructure as code (VPC, ECS, RDS, S3)
 ├── docker/                      # Multi-stage production container definitions
-├── terraform/                   # AWS Cloud infrastructure as code
-└── k8s/                         # Kubernetes manifests & deployment specs
+├── docs/                        # Architecture specs, ADRs, sequence flows, guides
+├── scripts/                     # Operational automation scripts (EC2, secrets sync, deploy)
+│   ├── ec2/                     # Automated Ubuntu 24.04 EC2 provisioner
+│   ├── commit_changes.sh        # Senior Engineer granular git commit script
+│   ├── deploy.sh                # Idempotent production server deployment script
+│   ├── sync-secrets.sh          # Multi-line environment secrets sync to GitHub CLI
+│   ├── verify-ssh.sh            # SSH port 22 accessibility & connectivity checker
+│   └── ec2Status.sh             # EC2 instance status & security group rule inspector
+├── .github/
+│   ├── workflows/               # GitHub Actions CI/CD (ci.yml, codeql.yml, deploy.yml, pr-labeler.yml)
+│   ├── dependabot.yml           # Grouped Dependabot updates across monorepo packages
+│   └── labeler.yml              # Automated path-based PR triaging
+├── .coderabbit.yaml             # CodeRabbit AI code review & architecture enforcement rules
+└── SECURITY.md                  # Enterprise vulnerability disclosure & security policy
 ```
 
 ---
@@ -58,13 +85,14 @@ $$\text{Routes} \xrightarrow{\text{Zod Validation + PBAC}} \text{Controllers} \x
 ### 2.2 Financial & Monetary Precision
 * **`Prisma.Decimal` Everywhere:** Monetary values (`basePrice`, `comparePrice`, `subtotal`, `discountAmount`, `taxAmount`, `shippingAmount`, `totalAmount`) **MUST** use PostgreSQL `Decimal(10,2)` via Prisma.
 * **NEVER Use JavaScript `Number` or `Float` for Money:** Floating-point arithmetic causes rounding errors.
-* **Subunit Conversions:** Payment provider subunit integers (e.g., paise for INR, cents for USD) must be calculated strictly inside gateway adapters (`Math.round(amount * 100)`), never in domain services.
+* **Subunit Conversions:** Payment provider subunit integers (e.g., paise for INR) must be calculated strictly inside gateway adapters (`Math.round(amount * 100)`), never in domain services.
 * **Post-Discount Taxes:** Tax rates (e.g. 10% GST) are computed strictly on taxable net amounts ($Subtotal - Discount$), never on gross pre-discount amounts.
+* **Currency Symbol:** The standard currency format across UI components is Indian Rupee (`₹` / `INR`).
 
 ### 2.3 Concurrency & Anti-Overselling Strategy
 * **PostgreSQL Row-Level Locks (`SELECT ... FOR UPDATE`):** When placing orders or mutating stock, inventory **MUST** be locked within a Prisma transaction (`$transaction`).
 * **Deterministic Lock Ordering:** Product UUIDs **MUST be sorted alphabetically** before executing `SELECT ... FOR UPDATE` to prevent circular deadlocks under concurrent checkouts.
-* **No Redis-Only Inventory Deductions:** Redis cache-aside reservations have been deprecated. PostgreSQL is the sole source of truth for stock.
+* **No Redis-Only Inventory Deductions:** PostgreSQL is the sole source of truth for stock.
 
 ### 2.4 State Machine Integrity
 * **Strict Order Transitions:** Order status mutations must **NEVER** be updated with arbitrary strings. All state changes must pass through `OrderStateMachine.transition(currentStatus, targetStatus)`:
@@ -72,20 +100,44 @@ $$\text{Routes} \xrightarrow{\text{Zod Validation + PBAC}} \text{Controllers} \x
   $$\text{PENDING / CONFIRMED} \rightarrow \text{CANCELLED} \quad | \quad \text{DELIVERED} \rightarrow \text{REFUNDED}$$
 * **Order Audit Logging:** Every order transition must append an `OrderAuditLog` record capturing the actor, old state, new state, and metadata within the same transaction.
 
-### 2.5 Webhook Asynchrony & Idempotency
-* **Fast Gateway Ack:** Payment gateway webhooks (`/api/payment/webhook`) must verify HMAC signatures via `express.raw()`, insert the unique `eventId` into `ProcessedWebhook`, push the event to **BullMQ**, and respond `200 OK` in $< 50\text{ms}$.
+### 2.5 Payment Gateway (Razorpay Exclusivity) & Webhook Asynchrony
+* **Razorpay Exclusivity:** Razorpay is the primary supported payment gateway across server and client.
+* **Fast Gateway Ack:** Payment gateway webhooks (`/api/payment/webhook`) must verify HMAC SHA-256 signatures via `express.raw()`, insert the unique `eventId` into `ProcessedWebhook`, push the event to **BullMQ**, and respond `200 OK` in $< 50\text{ms}$.
 * **Deduplication:** Repeated webhook deliveries must hit the `ProcessedWebhook` database primary key constraint, return `200 OK` immediately, and skip duplicate processing.
+* **Transactional Email Hook:** On `payment.captured`, the webhook worker automatically triggers `emailService.sendOrderConfirmation(...)` to deliver a professional HTML receipt.
 
 ---
 
-## 3. TypeScript & Coding Standards
+## 3. Environment & Secret Management
 
-### 3.1 Strict Type Discipline
+### 3.1 Standardized Secret Naming Conventions
+All infrastructure, backend, and frontend environments follow standard enterprise naming:
+
+| Scope | Standard Secret Key | Purpose |
+| :--- | :--- | :--- |
+| **AWS Cloud** | `AWS_REGION`, `AWS_ACCOUNT_ID`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | AWS Learner Lab & Cloud credentials |
+| **EC2 Server** | `AWS_EC2_HOST`, `AWS_EC2_USER`, `AWS_EC2_INSTANCE_ID`, `AWS_EC2_KEY_NAME`, `AWS_EC2_SSH_KEY` | Ubuntu EC2 deployment target |
+| **Database** | `DATABASE_URL`, `TEST_DATABASE_URL` | Neon PostgreSQL (Production pooler & Test DB) |
+| **Redis** | `REDIS_LOCAL_URL`, `REDIS_SERVER_URL` | Upstash / local Redis BullMQ queues |
+| **Auth** | `JWT_SECRET`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | Token signature secrets |
+| **Razorpay** | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Payment API keys & webhook HMAC secret |
+| **SMTP Email** | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Gmail SMTP transactional emailer |
+| **Docker** | `DOCKERHUB_USERNAME`, `DOCKERHUB_PASSWORD` | Container registry deployment |
+
+### 3.2 Automated Secrets Synchronization
+* Run [`scripts/sync-secrets.sh`](file:///Users/mayanksharma/Downloads/New_Projects/shopsmart/scripts/sync-secrets.sh) to safely synchronize all secrets from `.env` to GitHub repository secrets using GitHub CLI (`gh secret set`).
+* Multi-line RSA private keys (`AWS_EC2_SSH_KEY`) and connection URLs are parsed accurately without clipping.
+
+---
+
+## 4. TypeScript & Coding Standards
+
+### 4.1 Strict Type Discipline
 * **Zero `any` Policy:** Explicit types must be declared for all function arguments, return values, and DTOs.
 * **No `@ts-ignore`:** Use `@ts-expect-error` only with an accompanying code comment explaining why the error occurs and when it will be resolved.
 * **Type Narrowing & Guards:** Use Zod schemas or TypeScript type predicates (`val is Type`) instead of unsafe type assertions (`as unknown as Type`).
 
-### 3.2 Consistent API Response Envelope
+### 4.2 Consistent API Response Envelope
 Every HTTP endpoint must return a standardized JSON structure:
 
 #### Success Response (`200 OK`, `201 Created`)
@@ -114,38 +166,10 @@ Every HTTP endpoint must return a standardized JSON structure:
 }
 ```
 
-### 3.3 Error Handling & Async Wrappers
+### 4.3 Error Handling & Async Wrappers
 * **Centralized `AppError`:** Use `throw new AppError('Descriptive message', statusCode);` for all operational errors.
-* **Controller Wrapper:** Every asynchronous controller method must be wrapped with `catchAsync()`:
-  ```typescript
-  export const getProduct = catchAsync(async (req: Request, res: Response) => {
-    const product = await productService.getById(req.params.id);
-    res.status(200).json({ success: true, data: product });
-  });
-  ```
+* **Controller Wrapper:** Every asynchronous controller method must be wrapped with `catchAsync()`.
 * **Information Leak Prevention:** Never expose raw database errors (e.g. Prisma `P2002`, `P2025` error codes) or runtime stack traces in client-facing HTTP responses.
-
----
-
-## 4. Database & Prisma Rules
-
-### 4.1 Schema Conventions
-* **Primary Keys:** `id String @id @default(uuid())` for all models. Sequential integer IDs are prohibited.
-* **Table & Field Mapping:** Use camelCase in TypeScript models and map to snake_case table names (`@@map("table_name")`).
-* **Indexes:** Create B-tree indexes for all foreign keys, lookup slugs, and frequently filtered status flags:
-  ```prisma
-  @@index([categoryId])
-  @@index([status])
-  @@index([userId])
-  ```
-* **Cascade Deletion Boundaries:**
-  - `User` $\rightarrow$ `Cascade` deletes `RefreshToken`, `PasswordResetToken`, `Cart`, `Wishlist`, `Address`.
-  - `User` $\rightarrow$ `Restrict` deletion if historical `Order` records exist.
-  - `Category` $\rightarrow$ `Restrict` deletion if assigned `Product` records exist.
-
-### 4.2 Migration Safety
-* **No Blind `db push` in Production:** Production schema changes must have an explicit SQL migration created via `prisma migrate dev`.
-* **Zero-Downtime Changes:** When adding non-nullable columns to existing tables, provide default values or seed scripts to populate existing rows safely.
 
 ---
 
@@ -169,46 +193,38 @@ Every HTTP endpoint must return a standardized JSON structure:
   ```
 * Permissions are defined in `apps/server/src/types/auth.ts` and mapped to `SUPER_ADMIN`, `ADMIN`, `VENDOR`, and `CUSTOMER`.
 
-### 5.3 Input Sanitization & Request Validation
-* Every write route must enforce Zod validation middlewares: `validateBody(schema)`, `validateParams(schema)`, or `validateQuery(schema)`.
-* Never trust client-provided `userId` or prices. Always extract `userId` from `req.user.id` and fetch active product prices directly from the database.
-
 ---
 
-## 6. Frontend Architecture & State Management
+## 6. CI/CD & Developer Automation
 
-### 6.1 State Management Division
-* **Server State:** Handled exclusively via **TanStack / React Query** (`useQuery`, `useMutation`). Never replicate remote API entities into local component state.
-* **Client / UI State:** Handled via **Zustand** stores (`authStore`, `cartStore`, `wishlistStore`, `checkoutStore`).
-* **Form State:** Validated using **Zod** + React Hook Form or controlled inputs with real-time schema parsing.
+### 6.1 GitHub Workflows Topology
+* **`ci.yml`:** Comprehensive CI pipeline with matrix linting, TypeScript checking, isolated **Redis 7 test container**, Prisma client generation, Vitest execution, and Next.js 16 production build validation.
+* **`codeql.yml`:** Automated static application security testing (SAST) for JavaScript & TypeScript.
+* **`deploy.yml`:** Multi-target deployment hooks for Vercel (Frontend) and Render / EC2 (Backend).
+* **`pr-labeler.yml`:** Automated path-based pull request labeling.
 
-### 6.2 Next.js App Router Discipline
-* **Server vs. Client Components:** Default to Server Components (`RSC`). Add `'use client'` only to components requiring browser events, React hooks (`useState`, `useEffect`), or Zustand/Context subscribers.
-* **Image Optimization:** Always render product images using `<ProductImage />` or `next/image` with explicit aspect ratios and blur placeholders.
+### 6.2 CodeRabbit AI Integration ([`.coderabbit.yaml`](file:///Users/mayanksharma/Downloads/New_Projects/shopsmart/.coderabbit.yaml))
+* CodeRabbit automatically reviews all PRs against the architectural invariants defined in this `AGENTS.md` (DDD boundaries, Decimal precision, sorted UUID locks, Razorpay exclusivity).
+
+### 6.3 Git Commit & Push Discipline
+* **Granular Commits:** Use [`scripts/commit_changes.sh`](file:///Users/mayanksharma/Downloads/New_Projects/shopsmart/scripts/commit_changes.sh) to stage and commit changes atomically with conventional commit scopes (`feat(...)`, `fix(...)`, `chore(...)`, `ci(...)`).
+* **Fast Multi-Remote Pushes:** Use `git pushall` to push cleanly to both `origin` and `devops` remotes without local hook delays.
 
 ---
 
 ## 7. Testing & Quality Assurance
 
-### 7.1 Vitest Standards
-* Every service method and Zod schema must have unit tests.
-* Critical user journeys (**Auth, Cart, Checkout, Webhooks, Orders**) must have integration test coverage.
-* **Database Isolation:** All automated integration tests run against `TEST_DATABASE_URL` only. Tests must never mutate development or production databases.
-
-### 7.2 Pre-Flight Quality Checklist
-Before committing any changes or concluding an implementation task, run and verify:
+### 7.1 Pre-Flight Quality Checklist
+Before concluding an implementation task, run and verify:
 
 ```bash
-# 1. Run workspace linting
-pnpm turbo run lint
+# 1. Run workspace linting & typechecking
+pnpm test
 
-# 2. Run TypeScript typechecking
-pnpm turbo run typecheck
-
-# 3. Run complete test suite
+# 2. Run backend and frontend test suites
 pnpm turbo run test
 
-# 4. Verify production bundle build
+# 3. Verify production bundle build
 pnpm turbo run build
 ```
 
@@ -218,7 +234,7 @@ pnpm turbo run build
 
 When tasked with implementing a feature or bug fix:
 
-1. **Understand & Research:** Read relevant architecture specs in `docs/` and examine existing module conventions before touching code.
+1. **Understand & Research:** Read relevant architecture specs in `docs/` and examine existing module conventions before modifying code.
 2. **Design First:** For complex or multi-file features, create an implementation plan detailing file changes, API contracts, and schema impacts.
 3. **Execute in Dependency Order:**
    - Database schema & migrations $\rightarrow$
