@@ -3,6 +3,7 @@ import redis from '../shared/utils/redis';
 import prisma from '../shared/config/database';
 import { OrderStatus, PaymentTransactionStatus } from '@prisma/client';
 import { OrderStateMachine } from '../modules/checkout/order.state-machine';
+import { emailService } from '../modules/email/email.service';
 import logger from '../shared/utils/logger';
 
 export const processPaymentWebhookJob = async (job: { data: { eventId: string; gateway: string; payload: unknown } }) => {
@@ -55,6 +56,22 @@ export const processPaymentWebhookJob = async (job: { data: { eventId: string; g
       ]);
       
       logger.info('Order confirmed via webhook', { orderId: order.id, eventId });
+
+      // Trigger order confirmation email in background
+      try {
+        const user = await prisma.user.findUnique({ where: { id: order.userId } });
+        if (user?.email) {
+          await emailService.sendOrderConfirmation({
+            to: user.email,
+            customerName: user.name,
+            orderId: order.id,
+            totalAmount: order.totalAmount.toString(),
+            currency: 'INR',
+          });
+        }
+      } catch (err: unknown) {
+        logger.error('Failed to send confirmation email', { error: (err as Error).message });
+      }
     }
   } else if (eventName === 'payment.failed') {
       const paymentEntity = payload.payload.payment.entity;
