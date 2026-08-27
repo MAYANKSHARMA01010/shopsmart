@@ -117,18 +117,28 @@ describe('ShopSmart — Orders API Tests', () => {
       const res = await request(app)
         .patch(`/api/v1/orders/${testOrderId}/status`)
         .set('Authorization', `Bearer ${customerToken}`)
-        .send({ status: 'SHIPPED' });
+        .send({ status: 'CONFIRMED' });
       expect(res.status).toBe(403);
     });
 
-    it('should update order status for ADMIN', async () => {
+    it('should reject invalid transition (PENDING -> DELIVERED) with 400', async () => {
       const res = await request(app)
         .patch(`/api/v1/orders/${testOrderId}/status`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ status: 'SHIPPED' });
+        .send({ status: 'DELIVERED' });
+      
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should update order status for valid transition (PENDING -> CONFIRMED) for ADMIN', async () => {
+      const res = await request(app)
+        .patch(`/api/v1/orders/${testOrderId}/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'CONFIRMED' });
       
       expect(res.status).toBe(200);
-      expect(res.body.data.order.status).toBe('SHIPPED');
+      expect(res.body.data.order.status).toBe('CONFIRMED');
     });
   });
 });

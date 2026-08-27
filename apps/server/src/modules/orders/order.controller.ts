@@ -1,72 +1,52 @@
 import { Request, Response } from 'express';
 import { orderService } from './order.service';
+import { catchAsync } from '../../shared/utils/catchAsync';
+import { AppError } from '../../shared/utils/AppError';
 
-export const getMyOrders = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ status: 'error', message: 'Unauthorized' });
-      return;
-    }
-
-    const orders = await orderService.getMyOrders(userId);
-    res.status(200).json({ status: 'success', data: { orders } });
-  } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message || 'Internal server error' });
+export const getMyOrders = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new AppError('Unauthorized', 401);
   }
-};
 
-export const getOrderById = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const orderId = req.params.id as string;
-    const userId = req.user!.id;
-    const role = req.user!.role;
+  const orders = await orderService.getMyOrders(userId);
+  res.status(200).json({ success: true, data: { orders } });
+});
 
-    const order = await orderService.getOrderById(orderId, userId, role);
-    if (!order) {
-      res.status(404).json({ status: 'error', message: 'Order not found' });
-      return;
-    }
+export const getOrderById = catchAsync(async (req: Request, res: Response) => {
+  const orderId = req.params.id as string;
+  const userId = req.user!.id;
+  const role = req.user!.role;
 
-    res.status(200).json({ status: 'success', data: { order } });
-  } catch (error: any) {
-    if (error.message.includes('Forbidden')) {
-      res.status(403).json({ status: 'error', message: error.message });
-      return;
-    }
-    res.status(500).json({ status: 'error', message: error.message });
+  const order = await orderService.getOrderById(orderId, userId, role);
+  res.status(200).json({ success: true, data: { order } });
+});
+
+export const getAllOrders = catchAsync(async (req: Request, res: Response) => {
+  const role = req.user!.role;
+  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN' && role !== 'VENDOR') {
+    throw new AppError('Forbidden', 403);
   }
-};
 
-export const getAllOrders = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const role = req.user!.role;
-    if (role !== 'ADMIN' && role !== 'SUPER_ADMIN' && role !== 'VENDOR') {
-      res.status(403).json({ status: 'error', message: 'Forbidden' });
-      return;
-    }
+  const orders = await orderService.getAllOrders();
+  res.status(200).json({ success: true, data: { orders } });
+});
 
-    const orders = await orderService.getAllOrders();
-    res.status(200).json({ status: 'success', data: { orders } });
-  } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
+export const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
+  const role = req.user!.role;
+  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN' && role !== 'VENDOR') {
+    throw new AppError('Forbidden', 403);
   }
-};
 
-export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const role = req.user!.role;
-    if (role !== 'ADMIN' && role !== 'SUPER_ADMIN' && role !== 'VENDOR') {
-      res.status(403).json({ status: 'error', message: 'Forbidden' });
-      return;
-    }
+  const orderId = req.params.id as string;
+  const { status } = req.body;
 
-    const orderId = req.params.id as string;
-    const { status } = req.body;
+  const order = await orderService.updateOrderStatus(
+    orderId,
+    status,
+    req.user!.id,
+    req.user!.role
+  );
+  res.status(200).json({ success: true, data: { order } });
+});
 
-    const order = await orderService.updateOrderStatus(orderId, status);
-    res.status(200).json({ status: 'success', data: { order } });
-  } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error.message });
-  }
-};
