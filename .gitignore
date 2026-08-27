@@ -117,3 +117,7 @@ terraform/**/*.tfvars
 
 # --- Rendered K8s manifests (CI generates these) ---
 k8s-rendered/
+
+# --- Redis dumps ---
+dump.rdb
+
