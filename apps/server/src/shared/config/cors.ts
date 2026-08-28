@@ -19,7 +19,16 @@ const corsOptions: CorsOptions = {
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'Idempotency-Key',
+    'idempotency-key',
+    'X-Requested-With',
+    'x-requested-with',
+    'Accept',
+    'Origin',
+  ],
   credentials: true,
 };
 
