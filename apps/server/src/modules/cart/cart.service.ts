@@ -8,6 +8,10 @@ import { cartRepository } from './cart.repository';
 
 class CartService {
   private readonly CACHE_TTL = Number(env.REDIS_CACHE_TTL_SECONDS);
+  // Cart is volatile (users add/remove frequently) — use a much shorter TTL
+  // than the shared 1-hour default. Stale-while-revalidate handles the rest.
+  private readonly CART_CACHE_TTL = 5 * 60; // 5 minutes
+
 
   /**
    * Helper to invalidate Redis cache for a user's cart.
@@ -29,7 +33,11 @@ class CartService {
   }
 
   /**
-   * Retrieves cart. Implements Cache-Aside (Read-Through Redis).
+   * Retrieves cart. Implements Cache-Aside (Read-Through Redis) with
+   * stale-while-revalidate: cached data is returned instantly, but a background
+   * COUNT check verifies the cache is still in sync with the DB.
+   * If the DB was cleared externally (glitch, reset, migration), the cache is
+   * busted automatically so the next request gets authoritative DB data.
    */
   async getCart(userId: string): Promise<CartResponseDto> {
     const cacheKey = `cart:${userId}`;
@@ -37,7 +45,15 @@ class CartService {
       const cached = await redis.get(cacheKey);
       if (cached) {
         logger.info(`Serving cart for user ${userId} from Redis cache`);
-        return JSON.parse(cached);
+        const parsedCache: CartResponseDto = JSON.parse(cached);
+
+        // Stale-while-revalidate: if cache has items, verify against DB in background.
+        // No await — current request is not blocked.
+        if (parsedCache.items?.length > 0) {
+          this.verifyCartCache(userId, cacheKey, parsedCache.items.length).catch(() => {});
+        }
+
+        return parsedCache;
       }
     } catch (err: unknown) {
       logger.warn('Redis Cache Error (Get): Continuing with Database', { error: err });
@@ -47,12 +63,25 @@ class CartService {
     const formatted = this.formatCart(cart);
 
     try {
-      await redis.setex(cacheKey, this.CACHE_TTL, JSON.stringify(formatted));
+      await redis.setex(cacheKey, this.CART_CACHE_TTL, JSON.stringify(formatted));
     } catch (err: unknown) {
       logger.warn('Redis Cache Error (Set): Continuing without cache', { error: err });
     }
 
     return formatted;
+  }
+
+  /**
+   * Background DB verification for stale-while-revalidate.
+   * If DB item count differs from what we cached, the cache is invalidated.
+   * The next getCart call will re-populate from DB.
+   */
+  private async verifyCartCache(userId: string, cacheKey: string, cachedItemCount: number): Promise<void> {
+    const dbCount = await cartRepository.getCartItemCount(userId);
+    if (dbCount !== cachedItemCount) {
+      await redis.del(cacheKey);
+      logger.info(`[Cart cache] Stale data busted for ${userId} — DB: ${dbCount} items, cache: ${cachedItemCount} items`);
+    }
   }
 
   /**
