@@ -1,10 +1,14 @@
 import prisma from '../../shared/config/database';
 
-
 export class WishlistRepository {
-  async findWishlistByUserId(userId: string) {
+  async findWishlistByUserId(userId: string, category?: string) {
+    const where: { userId: string; category?: string } = { userId };
+    if (category && category !== 'all') {
+      where.category = category;
+    }
+
     return prisma.wishlist.findMany({
-      where: { userId },
+      where,
       include: {
         product: {
           select: {
@@ -30,11 +34,12 @@ export class WishlistRepository {
     });
   }
 
-  async createWishlistItem(userId: string, productId: string) {
+  async createWishlistItem(userId: string, productId: string, category = 'Default') {
     return prisma.wishlist.create({
       data: {
         userId,
         productId,
+        category,
       },
       include: {
         product: {
@@ -54,9 +59,9 @@ export class WishlistRepository {
     });
   }
 
-  async findWishlistItem(userId: string, productId: string) {
+  async findWishlistItem(userId: string, productId: string, category = 'Default') {
     return prisma.wishlist.findUnique({
-      where: { userId_productId: { userId, productId } },
+      where: { userId_productId_category: { userId, productId, category } },
       include: {
         product: {
           select: {
@@ -75,20 +80,24 @@ export class WishlistRepository {
     });
   }
 
-  async removeWishlistItem(userId: string, productId: string) {
-    return prisma.wishlist.delete({
-      where: {
-        userId_productId: {
-          userId,
-          productId,
-        },
-      },
+  async removeWishlistItem(userId: string, productId: string, category?: string) {
+    if (category) {
+      return prisma.wishlist.deleteMany({
+        where: { userId, productId, category },
+      });
+    }
+    return prisma.wishlist.deleteMany({
+      where: { userId, productId },
     });
   }
 
-  async clearWishlist(userId: string) {
+  async clearWishlist(userId: string, category?: string) {
+    const where: { userId: string; category?: string } = { userId };
+    if (category && category !== 'all') {
+      where.category = category;
+    }
     return prisma.wishlist.deleteMany({
-      where: { userId },
+      where,
     });
   }
 }
