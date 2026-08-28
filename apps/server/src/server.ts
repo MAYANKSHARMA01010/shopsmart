@@ -9,6 +9,7 @@ import categoryRoutes from './modules/categories/category.routes';
 import cartRoutes from './modules/cart/cart.routes';
 import checkoutRoutes from './modules/checkout/checkout.routes';
 import paymentRoutes from './modules/payment/payment.routes';
+import favoritesRoutes from './modules/favorites/favorites.routes';
 import wishlistRoutes from './modules/wishlist/wishlist.routes';
 import orderRoutes from './modules/orders/order.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
@@ -89,6 +90,7 @@ app.use('/api/v1/cart', cartRoutes);
 app.use('/api/v1/checkout', checkoutRoutes);
 app.use('/api/v1/payment', paymentRoutes);
 app.use('/api/v1/wishlist', wishlistRoutes);
+app.use('/api/v1/favorites', favoritesRoutes);
 app.use('/api/v1/addresses', addressRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
@@ -101,6 +103,37 @@ app.use(errorHandler);
 if (require.main === module) {
   app.listen(PORT, () => {
     logger.info(`Server running on port ${PORT} in ${env.NODE_ENV} mode`);
+
+    // ── Neon keep-alive ping ──────────────────────────────────────────────────
+    // Neon free tier auto-suspends the DB after ~5 min of inactivity.
+    // A suspended DB causes the next Prisma query to timeout / throw, which can
+    // crash the server. This lightweight SELECT 1 every 2 minutes keeps the
+    // connection warm and prevents cold-start errors.
+    const NEON_PING_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
+
+    const keepAlive = setInterval(async () => {
+      try {
+        await prisma.$queryRaw`SELECT 1`;
+        logger.debug('[Neon keep-alive] DB ping OK');
+      } catch (err) {
+        // Log but never crash — next real query will reconnect automatically
+        logger.warn('[Neon keep-alive] DB ping failed (will retry next interval)', { err });
+      }
+    }, NEON_PING_INTERVAL_MS);
+
+    // Don't block graceful shutdown
+    keepAlive.unref();
+  });
+
+  // ── Process-level crash guards ────────────────────────────────────────────
+  // Prevent a single unhandled Prisma / Redis error from killing nodemon and
+  // dropping all in-flight requests (the "Network Error" the client sees).
+  process.on('uncaughtException', (err) => {
+    logger.error('[uncaughtException] Unhandled error — server stays alive', { err });
+  });
+
+  process.on('unhandledRejection', (reason) => {
+    logger.error('[unhandledRejection] Unhandled promise rejection — server stays alive', { reason });
   });
 }
 
