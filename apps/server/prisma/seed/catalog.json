@@ -1,0 +1,318 @@
+[
+  {
+    "name": "Sony WH-1000XM5 Wireless Headphones",
+    "slug": "sony-wh-1000xm5-wireless-headphones",
+    "description": "Industry-leading noise canceling with two processors, 8 microphones, and up to 30 hours of battery life with ultra-comfortable lightweight design.",
+    "basePrice": 24990,
+    "stock": 25,
+    "images": [
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1484704849700-f032a568e944?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "electronics",
+    "vendor": "vendor1"
+  },
+  {
+    "name": "Keychron K2 Wireless Mechanical Keyboard",
+    "slug": "keychron-k2-wireless-mechanical-keyboard",
+    "description": "Compact 75% layout Bluetooth wireless mechanical keyboard with Gateron G Pro mechanical switches and RGB backlighting for Mac and Windows.",
+    "basePrice": 7499,
+    "stock": 18,
+    "images": [
+      "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "electronics",
+    "vendor": "vendor1"
+  },
+  {
+    "name": "Logitech MX Master 3S Wireless Mouse",
+    "slug": "logitech-mx-master-3s-wireless-mouse",
+    "description": "Ergonomic wireless performance mouse with 8K DPI tracking on any surface and quiet click switches.",
+    "basePrice": 8995,
+    "stock": 30,
+    "images": [
+      "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1626218174358-7769486c4b79?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "electronics",
+    "vendor": "vendor2"
+  },
+  {
+    "name": "Bose SoundLink Flex Bluetooth Speaker",
+    "slug": "bose-soundlink-flex-bluetooth-speaker",
+    "description": "Rugged outdoor portable speaker with clear, balanced audio and deep bass. Waterproof and dustproof (IP67).",
+    "basePrice": 13900,
+    "stock": 15,
+    "images": [
+      "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "electronics",
+    "vendor": "vendor1"
+  },
+  {
+    "name": "Handcrafted Chanderi Silk Saree",
+    "slug": "handcrafted-chanderi-silk-saree",
+    "description": "Authentic handwoven Chanderi pure silk saree with delicate zari borders and traditional peacock motifs, woven by master artisans of Madhya Pradesh.",
+    "basePrice": 4850,
+    "stock": 12,
+    "images": [
+      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1609357605129-26f69add5d6e?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "clothing",
+    "vendor": "vendor1"
+  },
+  {
+    "name": "Pure Linen Regular Fit Shirt",
+    "slug": "pure-linen-regular-fit-shirt",
+    "description": "Breathable 100% French linen shirt tailored for effortless warm-weather sophistication. Features a classic mandarin collar and mother-of-pearl buttons.",
+    "basePrice": 2199,
+    "stock": 40,
+    "images": [
+      "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1620012253295-c15c429fcc71?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1603252109303-2751441dd157?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "clothing",
+    "vendor": "vendor2"
+  },
+  {
+    "name": "Artisanal Indigo Block Print Kurta",
+    "slug": "artisanal-indigo-block-print-kurta",
+    "description": "Hand-block printed pure cotton kurta using natural indigo dye. Crafted with traditional Bagru wooden blocks for a relaxed bohemian fit.",
+    "basePrice": 1899,
+    "stock": 20,
+    "images": [
+      "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "clothing",
+    "vendor": "vendor1"
+  },
+  {
+    "name": "Full-Grain Tuscan Leather Messenger Bag",
+    "slug": "full-grain-tuscan-leather-messenger-bag",
+    "description": "Handcrafted vegetable-tanned leather messenger bag designed to carry up to 15-inch laptops, with solid brass hardware and an adjustable shoulder strap.",
+    "basePrice": 6499,
+    "stock": 10,
+    "images": [
+      "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "clothing",
+    "vendor": "vendor2"
+  },
+  {
+    "name": "Terracotta Glazed Ceramic Tea Set",
+    "slug": "terracotta-glazed-ceramic-tea-set",
+    "description": "Studio-pottery handcrafted tea set featuring a 600ml teapot and four matching kulhad cups with a matte forest green glaze finish.",
+    "basePrice": 1650,
+    "stock": 16,
+    "images": [
+      "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "home-garden",
+    "vendor": "vendor1"
+  },
+  {
+    "name": "Solid Sheesham Wood Serving Tray",
+    "slug": "solid-sheesham-wood-serving-tray",
+    "description": "Carved from sustainably sourced natural Indian Rosewood (Sheesham) with brass inlay accents. Food-safe organic oil finish.",
+    "basePrice": 1299,
+    "stock": 22,
+    "images": [
+      "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1584589167171-541ce45f1eea?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1544816155-12df9643f363?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "home-garden",
+    "vendor": "vendor2"
+  },
+  {
+    "name": "Organic Soy Wax Aromatherapy Candle Set",
+    "slug": "organic-soy-wax-aromatherapy-candle-set",
+    "description": "Trio of hand-poured soy candles infused with pure essential oils of Mysore Sandalwood, Himalayan Cedarwood, and French Lavender. 45-hour clean burn.",
+    "basePrice": 999,
+    "stock": 35,
+    "images": [
+      "https://images.unsplash.com/photo-1603006905003-be475563bc59?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1605651202774-7d573fd3f12d?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1572726729983-5ce25501869e?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1596433809252-260c2745dfdd?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "home-garden",
+    "vendor": "vendor1"
+  },
+  {
+    "name": "Handwoven Natural Jute Floor Rug",
+    "slug": "handwoven-natural-jute-floor-rug",
+    "description": "Eco-friendly 4x6 ft braided natural golden jute rug, handwoven by skilled carpet weavers in Bhadohi. Durable and reversible.",
+    "basePrice": 3499,
+    "stock": 8,
+    "images": [
+      "https://images.unsplash.com/photo-1600121848594-d8644e57abab?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "home-garden",
+    "vendor": "vendor2"
+  },
+  {
+    "name": "Natural Cork Eco-Friendly Yoga Mat",
+    "slug": "natural-cork-eco-friendly-yoga-mat",
+    "description": "Premium 6mm non-slip exercise mat made from organic cork and natural tree rubber. Naturally antimicrobial with superior grip.",
+    "basePrice": 1999,
+    "stock": 20,
+    "images": [
+      "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1575052814086-f385e2e2ad1b?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "sports",
+    "vendor": "vendor1"
+  },
+  {
+    "name": "Cast Iron Hex Dumbbells (5kg Pair)",
+    "slug": "cast-iron-hex-dumbbells-5kg-pair",
+    "description": "Solid cast iron dumbbells encased in heavy-duty virgin rubber to reduce noise and prevent floor damage, featuring knurled chrome handles.",
+    "basePrice": 2499,
+    "stock": 14,
+    "images": [
+      "https://images.unsplash.com/photo-1586401100295-7a8096fd231a?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "sports",
+    "vendor": "vendor2"
+  },
+  {
+    "name": "Insulated Stainless Steel Sports Bottle 1L",
+    "slug": "insulated-stainless-steel-sports-bottle-1l",
+    "description": "Double-wall vacuum-insulated 18/8 food-grade stainless steel bottle. Keeps drinks icy cold for 24 hours or piping hot for 12 hours.",
+    "basePrice": 1150,
+    "stock": 50,
+    "images": [
+      "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1544003484-3cd181d17917?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1570831739435-6601aa4fa4fb?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "sports",
+    "vendor": "vendor1"
+  },
+  {
+    "name": "Handcrafted Wooden Waldorf Building Blocks",
+    "slug": "handcrafted-wooden-waldorf-building-blocks",
+    "description": "50-piece set of solid beech wood blocks in various architectural geometric shapes, finished with non-toxic child-safe water-based dyes.",
+    "basePrice": 1499,
+    "stock": 18,
+    "images": [
+      "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "toys",
+    "vendor": "vendor2"
+  },
+  {
+    "name": "Artisanal Wooden Chess Set with Storage",
+    "slug": "artisanal-wooden-chess-set-with-storage",
+    "description": "14-inch folding chess board handcrafted in Sheesham and Boxwood with hand-carved Staunton tournament pieces and velvet interior storage.",
+    "basePrice": 2999,
+    "stock": 12,
+    "images": [
+      "https://images.unsplash.com/photo-1529699211952-734e80c4d42b?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1586165368502-1bad197a6461?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1580541832626-2a7131ee809f?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1560174038-da43ac74f01b?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "toys",
+    "vendor": "vendor1"
+  },
+  {
+    "name": "The Palace of Illusions",
+    "slug": "the-palace-of-illusions",
+    "description": "By Chitra Banerjee Divakaruni. An epic, award-winning reimagining of the Mahabharata from the courageous perspective of Panchaali (Draupadi).",
+    "basePrice": 399,
+    "stock": 45,
+    "images": [
+      "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1495640388908-05fa85288e61?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "books",
+    "vendor": "vendor1"
+  },
+  {
+    "name": "Atomic Habits Hardcover Edition",
+    "slug": "atomic-habits-hardcover-edition",
+    "description": "By James Clear. The #1 New York Times bestseller that provides a proven framework for improving every day through tiny, remarkable changes.",
+    "basePrice": 599,
+    "stock": 60,
+    "images": [
+      "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1491841573634-28140fc7ced7?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "books",
+    "vendor": "vendor2"
+  },
+  {
+    "name": "Ikigai: The Japanese Secret to a Long Life",
+    "slug": "ikigai-the-japanese-secret-to-a-long-life",
+    "description": "By Héctor García & Francesc Miralles. Discover your passion, purpose, and the daily rituals that bring joy and longevity.",
+    "basePrice": 350,
+    "stock": 55,
+    "images": [
+      "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1524578271613-d550eacf6090?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "books",
+    "vendor": "vendor1"
+  },
+  {
+    "name": "Sapiens: A Brief History of Humankind",
+    "slug": "sapiens-a-brief-history-of-humankind",
+    "description": "By Yuval Noah Harari. A groundbreaking narrative exploration of how Homo sapiens came to dominate planet Earth through collective mythmaking.",
+    "basePrice": 499,
+    "stock": 35,
+    "images": [
+      "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=800&auto=format&fit=crop&q=80"
+    ],
+    "category": "books",
+    "vendor": "vendor2"
+  }
+]
