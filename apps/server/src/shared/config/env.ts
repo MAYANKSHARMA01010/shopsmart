@@ -39,8 +39,8 @@ const envSchema = z.object({
 
   // Checkout & Transactions
   DEFAULT_CURRENCY: z.string().default('INR'),
-  CHECKOUT_TX_TIMEOUT_MS: z.string().default('20000'),
-  CHECKOUT_TX_MAX_WAIT_MS: z.string().default('10000'),
+  CHECKOUT_TX_TIMEOUT_MS: z.string().default('45000'),
+  CHECKOUT_TX_MAX_WAIT_MS: z.string().default('20000'),
   
   // Payment Gateway (Razorpay)
   RAZORPAY_KEY_ID: z.string().min(5),
