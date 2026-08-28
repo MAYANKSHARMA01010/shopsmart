@@ -85,6 +85,18 @@ export class CartRepository {
     });
   }
 
+  /**
+   * Cheap COUNT query to verify how many items the DB actually has for a user's cart.
+   * Used by the stale-cache verification logic — avoids loading full product data.
+   */
+  async getCartItemCount(userId: string): Promise<number> {
+    const cart = await prisma.cart.findUnique({
+      where: { userId },
+      select: { _count: { select: { items: true } } },
+    });
+    return cart?._count?.items ?? 0;
+  }
+
   async executeTransaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
     return prisma.$transaction(fn);
   }
