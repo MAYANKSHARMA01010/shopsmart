@@ -54,6 +54,7 @@ model User {
   orders         Order[]
   cart           Cart?
   wishlist       Wishlist[]
+  favorites      Favorite[]
   addresses      Address[]
   products       Product[]
 
@@ -140,6 +141,7 @@ model Product {
   orderItems OrderItem[]
   cartItems  CartItem[]
   wishlistedBy Wishlist[]
+  favoritedBy  Favorite[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -190,12 +192,27 @@ model Wishlist {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category  String   @default("Default")
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId, category])
+  @@index([userId])
+  @@index([productId])
+  @@map("wishlists")
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@unique([userId, productId])
   @@index([userId])
   @@index([productId])
-  @@map("wishlists")
+  @@map("favorites")
 }
 
 // ═══════════════════════════════════════════════════════════════
