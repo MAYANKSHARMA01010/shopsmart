@@ -4,18 +4,16 @@ import { wishlistRepository } from './wishlist.repository';
 
 export class WishlistService {
   /**
-   * Retrieves all items in the user's wishlist
+   * Retrieves all items in the user's wishlist (optionally filtered by category)
    */
-  async getWishlist(userId: string) {
-    const wishlist = await wishlistRepository.findWishlistByUserId(userId);
-    return wishlist;
+  async getWishlist(userId: string, category?: string) {
+    return wishlistRepository.findWishlistByUserId(userId, category);
   }
 
   /**
-   * Adds a product to the user's wishlist
+   * Adds a product to the user's wishlist category
    */
-  async addProduct(userId: string, productId: string) {
-    // Verify product exists and is visible
+  async addProduct(userId: string, productId: string, category = 'Default') {
     const product = await wishlistRepository.findProductById(productId);
 
     if (!product || !product.isVisible) {
@@ -23,12 +21,10 @@ export class WishlistService {
     }
 
     try {
-      const wishlistItem = await wishlistRepository.createWishlistItem(userId, productId);
-      return wishlistItem;
+      return await wishlistRepository.createWishlistItem(userId, productId, category);
     } catch (error: unknown) {
-      // Prisma P2002: Unique constraint failed
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        const existing = await wishlistRepository.findWishlistItem(userId, productId);
+        const existing = await wishlistRepository.findWishlistItem(userId, productId, category);
         if (existing) return existing;
       }
       throw error;
@@ -38,24 +34,19 @@ export class WishlistService {
   /**
    * Removes a product from the user's wishlist
    */
-  async removeProduct(userId: string, productId: string) {
-    try {
-      await wishlistRepository.removeWishlistItem(userId, productId);
-      return true;
-    } catch (error: unknown) {
-      // Record to delete does not exist (P2025)
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-        throw new AppError('Item not found in wishlist', 404);
-      }
-      throw error;
+  async removeProduct(userId: string, productId: string, category?: string) {
+    const result = await wishlistRepository.removeWishlistItem(userId, productId, category);
+    if (result.count === 0) {
+      throw new AppError('Item not found in wishlist', 404);
     }
+    return true;
   }
 
   /**
-   * Clears the user's entire wishlist
+   * Clears the user's wishlist (or category)
    */
-  async clearWishlist(userId: string) {
-    await wishlistRepository.clearWishlist(userId);
+  async clearWishlist(userId: string, category?: string) {
+    await wishlistRepository.clearWishlist(userId, category);
     return true;
   }
 }
