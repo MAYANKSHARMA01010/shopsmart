@@ -6,10 +6,17 @@ import { AuthProvider } from "@/features/auth/AuthContext";
 import { QueryProvider } from "@/providers/QueryProvider";
 
 import { Toaster } from "react-hot-toast";
+import { UIProvider } from "@/context/UIContext";
+import { LazyModalContainer } from "@/components/ui/LazyModalContainer";
 
 export const metadata: Metadata = {
-  title: "ShopSmart — Product Manager",
-  description: "Manage your product catalog with a modern full-stack application built on Next.js, Express, and PostgreSQL.",
+  title: "ShopSmart — Modern E-Commerce Experience",
+  description: "Curating premium products for the modern Indian lifestyle, bridging quality and value.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -46,15 +53,19 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <QueryProvider>
           <AuthProvider>
-            <div className="page-wrapper">
-              <Navbar />
-              <main style={{ flex: 1 }}>{children}</main>
-              <Footer />
-            </div>
-            <Toaster position="bottom-right" />
+            <UIProvider>
+              <div className="page-wrapper">
+                <Navbar />
+                <main style={{ flex: 1 }}>{children}</main>
+                <Footer />
+              </div>
+              <LazyModalContainer />
+              <Toaster position="bottom-right" />
+            </UIProvider>
           </AuthProvider>
         </QueryProvider>
       </body>
     </html>
   );
 }
+
