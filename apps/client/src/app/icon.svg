@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ss-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A2F" />
+      <stop offset="60%" stop-color="#2D6A4F" />
+      <stop offset="100%" stop-color="#E07A5F" />
+    </linearGradient>
+    <linearGradient id="ss-accent" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#D4884A" />
+      <stop offset="100%" stop-color="#FE9659" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded Background Container -->
+  <rect width="64" height="64" rx="16" fill="#1E3A2F" />
+  
+  <!-- Subtle inner glow rim -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="none" stroke="#2D6A4F" stroke-width="1.5" stroke-opacity="0.6" />
+
+  <!-- Shopping Bag Handle -->
+  <path d="M25 24V19C25 15.13 28.13 12 32 12C35.87 12 39 15.13 39 19V24" fill="none" stroke="url(#ss-accent)" stroke-width="3.5" stroke-linecap="round" />
+
+  <!-- Shopping Bag Body & S Ribbon Monogram -->
+  <path d="M17 24H47L44.5 48.5C44.2 51.5 41.7 53.8 38.7 53.8H25.3C22.3 53.8 19.8 51.5 19.5 48.5L17 24Z" fill="#FDFBFA" fill-opacity="0.08" stroke="#FDFBFA" stroke-width="2.5" stroke-linejoin="round" />
+
+  <!-- S-Curve Monogram Center -->
+  <path d="M37 28C34 26 28 26.5 27 31C25.8 36.4 38 34.5 37 41C36.2 46.2 29.5 46.5 26 44" fill="none" stroke="url(#ss-accent)" stroke-width="3.75" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Smart Sparkle Star -->
+  <path d="M43 20L44.2 23.2L47.4 24.4L44.2 25.6L43 28.8L41.8 25.6L38.6 24.4L41.8 23.2Z" fill="#FE9659" />
+</svg>
