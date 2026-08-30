@@ -1,37 +1,39 @@
-import { useState } from "react";
-import { ProductImage } from "./ProductImage";
-import { formatPrice } from "../types/productSchema";
-import type { Product } from "../types/productSchema";
-import { WishlistButton } from "../../wishlist/components/WishlistButton";
-import { useCartStore } from "../../cart/store/cartStore";
+"use client";
+
+import React, { useState, useMemo, useCallback } from "react";
+import Link from "next/link";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
+import { formatPrice, type Product } from "../types/productSchema";
+import { FavoriteButton } from "@/features/favorites";
+import { WishlistButton } from "@/features/wishlist";
+import { useCart } from "@/features/cart";
+import { useUI } from "@/context/UIContext";
+
 
 interface ProductCardProps {
   product: Product;
-  onDelete: (id: string) => void;
-  deleting: boolean;
+  onDelete?: (id: string) => void;
+  deleting?: boolean;
   canManage?: boolean;
+  priority?: boolean;
 }
 
-function IconProductPlaceholder() {
+function IconCart() {
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "var(--color-surface)" }}>
-      <svg
-        width="48"
-        height="48"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ color: "var(--color-text-muted)" }}
-        aria-hidden="true"
-      >
-        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-        <line x1="12" y1="22.08" x2="12" y2="12" />
-      </svg>
-    </div>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="9" cy="21" r="1" />
+      <circle cx="20" cy="21" r="1" />
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+    </svg>
+  );
+}
+
+function IconEye() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
   );
 }
 
@@ -41,32 +43,31 @@ function getStockClass(stock: number): string {
   return "in-stock";
 }
 
-function getStockLabel(stock: number, canManage?: boolean): string {
-  if (stock === 0) return "Out of stock";
-  if (canManage) {
-    if (stock < 5) return `Low stock — ${stock} left`;
-    return `${stock} in stock`;
-  }
-  return "In Stock";
-}
+export const ProductCard = React.memo(function ProductCard({
+  product,
+  onDelete,
+  deleting = false,
+  canManage = false,
+  priority = false,
+}: ProductCardProps) {
+  const { addItem, updateQuantity, removeItem, getItemQuantity, isInCart, isLoading } = useCart();
+  const { openQuickView } = useUI();
 
-export function ProductCard({ product, onDelete, deleting, canManage }: ProductCardProps) {
-  const addItem = useCartStore((s) => s.addItem);
-  const updateQuantity = useCartStore((s) => s.updateQuantity);
-  const removeItem = useCartStore((s) => s.removeItem);
-  const isLoading = useCartStore((s) => s.isLoading);
-  
-  const cartItems = useCartStore((s) => s.cart?.items || []);
-  const cartItem = cartItems.find((item) => item?.productId === product.id);
-  const inCart = !!cartItem;
-  
+  const inCart = isInCart(product.id);
+  const cartQuantity = getItemQuantity(product.id);
+
   const [adding, setAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
 
-  async function handleAddToCart() {
+  const handleAddToCart = useCallback(async () => {
     try {
       setAdding(true);
-      await addItem(product as any, 1);
+      const cartProduct = {
+        ...product,
+        basePrice: String(product.basePrice),
+        comparePrice: product.comparePrice != null ? String(product.comparePrice) : null,
+      };
+      await addItem(cartProduct as any, 1);
       setJustAdded(true);
       setTimeout(() => setJustAdded(false), 2000);
     } catch (err) {
@@ -74,134 +75,195 @@ export function ProductCard({ product, onDelete, deleting, canManage }: ProductC
     } finally {
       setAdding(false);
     }
-  }
+  }, [addItem, product]);
+
+  const stockLabel = useMemo(() => {
+    if (product.stock === 0) return "Out of stock";
+    if (canManage) {
+      if (product.stock < 5) return `Low stock — ${product.stock} left`;
+      return `${product.stock} in stock`;
+    }
+    if (product.stock < 5) return `Only ${product.stock} left!`;
+    return null;
+  }, [product.stock, canManage]);
+
+  const formattedPrice = useMemo(() => formatPrice(product.basePrice), [product.basePrice]);
+  const formattedComparePrice = useMemo(
+    () => (product.comparePrice != null ? formatPrice(product.comparePrice) : null),
+    [product.comparePrice]
+  );
 
   return (
-    <article className="product-card">
-      {/* Image / placeholder */}
-      <div className="product-image" style={{ aspectRatio: "280/160", position: "relative", overflow: "hidden" }}>
-        <ProductImage
-          src={product.images?.[0]}
-          alt={product.name}
-          fill
-          sizes="(max-width: 768px) 100vw, 280px"
-        />
-        <div style={{ position: "absolute", top: "12px", right: "12px", zIndex: 10 }}>
-          <WishlistButton product={product} />
+    <article className="product-card" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* Product Image Container */}
+      <div className="product-image" style={{ position: "relative", overflow: "hidden" }}>
+        <Link href={`/products/${product.id}`} style={{ display: "block", width: "100%", height: "100%", position: "relative" }}>
+          <OptimizedImage
+            src={product.images?.[0]}
+            alt={product.name}
+            fill
+            priority={priority}
+            sizes="(max-width: 768px) 100vw, 280px"
+          />
+        </Link>
+
+        {/* Quick View Button */}
+        <button
+          type="button"
+          onClick={() => openQuickView(product)}
+          aria-label={`Quick view ${product.name}`}
+          className="quick-view-btn"
+          style={{
+            position: "absolute",
+            bottom: "10px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 10,
+            background: "rgba(255, 255, 255, 0.92)",
+            backdropFilter: "blur(4px)",
+            color: "var(--color-text-primary, #0f172a)",
+            border: "1px solid var(--color-border, #e2e8f0)",
+            borderRadius: "var(--radius-full, 9999px)",
+            padding: "6px 14px",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            cursor: "pointer",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <IconEye /> Quick View
+        </button>
+
+        {/* Favorite Heart Button */}
+        <div style={{ position: "absolute", top: "10px", right: "10px", zIndex: 10 }}>
+          <FavoriteButton product={product} />
         </div>
       </div>
 
       {/* Body */}
-      <div className="product-body">
+      <div className="product-body" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
         {product.category && (
           <span className="product-category">{product.category.name}</span>
         )}
-        <h2 className="product-name">{product.name}</h2>
+        <h2 className="product-name" style={{ fontSize: "1rem", lineHeight: 1.4, margin: "0 0 var(--space-2)" }}>
+          <Link href={`/products/${product.id}`} style={{ color: "inherit", textDecoration: "none" }}>
+            {product.name}
+          </Link>
+        </h2>
         {product.description && (
-          <p className="product-desc">{product.description}</p>
+          <p className="product-desc" style={{ fontSize: "0.85rem", color: "var(--color-text-secondary)", lineHeight: 1.5, margin: "0 0 var(--space-3)" }}>
+            {product.description}
+          </p>
         )}
 
         {/* Footer: price + stock */}
-        <div className="product-footer">
-          <span
-            className="product-price"
-            aria-label={`Price: ₹${formatPrice(product.basePrice)}`}
-          >
-            ₹{formatPrice(product.basePrice)}
-          </span>
-          <span
-            className={`product-stock ${getStockClass(product.stock)}`}
-            aria-label={getStockLabel(product.stock, canManage)}
-          >
-            {getStockLabel(product.stock, canManage)}
-          </span>
+        <div className="product-footer" style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "var(--space-2)" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+            <span
+              className="product-price"
+              aria-label={`Price: ₹${formattedPrice}`}
+              style={{ fontFamily: "var(--font-mono)", fontSize: "1.15rem", fontWeight: 700, color: "var(--color-text-primary)" }}
+            >
+              ₹{formattedPrice}
+            </span>
+            {formattedComparePrice && (
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.85rem",
+                  color: "var(--color-text-muted)",
+                  textDecoration: "line-through",
+                }}
+              >
+                ₹{formattedComparePrice}
+              </span>
+            )}
+          </div>
+
+          {stockLabel && (
+            <span
+              className={`product-stock ${getStockClass(product.stock)}`}
+              aria-label={stockLabel}
+            >
+              {stockLabel}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="product-actions" style={{ marginTop: "auto", display: "flex", flexDirection: "column" }}>
-        {canManage ? (
+      {/* Actions: Add to Cart + Wishlist Bookmark */}
+      <div className="product-actions" style={{ padding: "0 var(--space-5) var(--space-5)", display: "flex", gap: "8px", alignItems: "center" }}>
+        {canManage && onDelete ? (
           <button
             type="button"
             className="btn btn-danger btn-sm"
             onClick={() => onDelete(product.id)}
             disabled={deleting}
             aria-label={`Delete ${product.name}`}
-            style={{ width: "100%" }}
+            style={{ width: "100%", height: "38px" }}
           >
             {deleting ? "Deleting…" : "Delete"}
           </button>
-        ) : inCart && cartItem ? (
-          <div style={{ display: "flex", gap: "8px", width: "100%" }}>
-            <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--color-primary)", borderRadius: "var(--radius-sm)", overflow: "hidden", height: "36px", flex: 1, justifyContent: "space-between" }}>
-              <button 
+        ) : inCart ? (
+          <>
+            <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--color-primary)", borderRadius: "var(--radius-sm)", overflow: "hidden", height: "38px", flex: 1, justifyContent: "space-between" }}>
+              <button
+                type="button"
                 onClick={() => {
-                  if (cartItem.quantity <= 1) {
+                  if (cartQuantity <= 1) {
                     removeItem(product.id);
                   } else {
-                    updateQuantity(product.id, cartItem.quantity - 1);
+                    updateQuantity(product.id, cartQuantity - 1);
                   }
                 }}
                 disabled={isLoading}
-                style={{ padding: "0 16px", background: "transparent", color: "var(--color-primary)", border: "none", cursor: "pointer", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", transition: "background 0.2s" }}
-                onMouseOver={(e) => e.currentTarget.style.background = "var(--color-surface-hover)"}
-                onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
+                style={{ padding: "0 14px", background: "transparent", color: "var(--color-primary)", border: "none", cursor: "pointer", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}
               >
-                -
+                −
               </button>
-              <div style={{ padding: "0 12px", flex: 1, textAlign: "center", fontSize: "0.9rem", fontWeight: 600, color: "var(--color-text)" }}>
-                {cartItem.quantity}
+              <div style={{ padding: "0 8px", flex: 1, textAlign: "center", fontSize: "0.9rem", fontWeight: 600, color: "var(--color-text-primary)", fontFamily: "var(--font-mono)" }}>
+                {cartQuantity}
               </div>
-              <button 
-                onClick={() => updateQuantity(product.id, cartItem.quantity + 1)}
-                disabled={cartItem.quantity >= product.stock || isLoading}
-                style={{ padding: "0 16px", background: "transparent", color: cartItem.quantity >= product.stock ? "var(--color-text-muted)" : "var(--color-primary)", border: "none", cursor: cartItem.quantity >= product.stock ? "not-allowed" : "pointer", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", transition: "background 0.2s" }}
-                onMouseOver={(e) => { if (cartItem.quantity < product.stock) e.currentTarget.style.background = "var(--color-surface-hover)" }}
-                onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
+              <button
+                type="button"
+                onClick={() => updateQuantity(product.id, cartQuantity + 1)}
+                disabled={cartQuantity >= product.stock || isLoading}
+                style={{ padding: "0 14px", background: "transparent", color: cartQuantity >= product.stock ? "var(--color-text-muted)" : "var(--color-primary)", border: "none", cursor: cartQuantity >= product.stock ? "not-allowed" : "pointer", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}
               >
                 +
               </button>
             </div>
+            <WishlistButton product={product} variant="icon" />
+          </>
+        ) : (
+          <>
             <button
-              onClick={() => removeItem(product.id)}
-              disabled={isLoading}
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={handleAddToCart}
+              disabled={adding || product.stock === 0 || justAdded}
+              aria-label={`Add ${product.name} to Cart`}
               style={{
-                width: "36px",
-                height: "36px",
-                display: "flex",
+                flex: 1,
+                height: "38px",
+                display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: "transparent",
-                border: "1px solid var(--color-danger)",
-                color: "var(--color-danger)",
-                borderRadius: "var(--radius-sm)",
-                cursor: "pointer",
-                transition: "background 0.2s",
-                flexShrink: 0
+                gap: "8px",
+                ...(justAdded ? { backgroundColor: "var(--color-success)", borderColor: "var(--color-success)" } : {}),
               }}
-              aria-label={`Remove ${product.name} from cart`}
-              onMouseOver={(e) => e.currentTarget.style.background = "var(--color-danger-light, rgba(239, 68, 68, 0.1))"}
-              onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
+              <IconCart />
+              <span>{adding ? "Adding…" : justAdded ? "✓ Added!" : product.stock === 0 ? "Out of Stock" : "Add to Cart"}</span>
             </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={handleAddToCart}
-            disabled={adding || product.stock === 0 || justAdded}
-            aria-label={`Add ${product.name} to Cart`}
-            style={{ width: "100%", ...(justAdded ? { backgroundColor: '#4caf50', borderColor: '#4caf50', color: 'white' } : {}) }}
-          >
-            {adding ? "Adding…" : justAdded ? "Added to Cart!" : product.stock === 0 ? "Out of Stock" : "Add to Cart"}
-          </button>
+            <WishlistButton product={product} variant="icon" />
+          </>
         )}
       </div>
     </article>
   );
-}
+});
