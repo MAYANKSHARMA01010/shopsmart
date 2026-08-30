@@ -53,6 +53,11 @@ export interface Product extends ProductData {
 // (Prisma Decimal → JSON serialized as string "19.99") ─────────────────────
 
 export function formatPrice(value: number | string | null | undefined): string {
-  if (value === null || value === undefined || value === "") return "0.00";
-  return Number.parseFloat(String(value)).toFixed(2);
+  if (value === null || value === undefined || value === "") return "0";
+  const num = Number.parseFloat(String(value));
+  if (isNaN(num)) return "0";
+  if (num % 1 === 0) {
+    return num.toLocaleString("en-IN");
+  }
+  return num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
