@@ -14,6 +14,7 @@ interface ProductImageProps {
   width?: number;
   height?: number;
   sizes?: string;
+  priority?: boolean;
   style?: React.CSSProperties;
   className?: string;
 }
@@ -34,6 +35,7 @@ export function ProductImage({
   width,
   height,
   sizes,
+  priority = false,
   style,
   className,
 }: ProductImageProps) {
@@ -49,8 +51,11 @@ export function ProductImage({
       sizes={sizes ?? "(max-width: 768px) 100vw, 280px"}
       style={style ?? { objectFit: "cover" }}
       className={className}
+      priority={priority}
+      loading={priority ? "eager" : "lazy"}
       unoptimized
       onError={() => setImgSrc(PLACEHOLDER)}
     />
   );
 }
+
