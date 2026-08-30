@@ -1,15 +1,34 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../AuthContext";
 import Link from "next/link";
-
 import toast from "react-hot-toast";
+
+function IconEyeOff() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+
+function IconEye() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
 
 export function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/products";
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -31,9 +50,9 @@ export function LoginForm() {
     try {
       await login({ identifier, password });
       toast.success("Welcome back!");
-      router.push("/products");
-    } catch (err: any) {
-      const msg = err.message || "Invalid credentials";
+      router.push(redirectUrl);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Invalid credentials";
       setError(msg);
       toast.error(msg);
     } finally {
@@ -42,110 +61,78 @@ export function LoginForm() {
   };
 
   return (
-    <div className="card" style={{ maxWidth: "420px", margin: "40px auto", width: "100%", padding: "32px" }}>
-      <h2 style={{ fontFamily: "var(--font-display)", fontSize: "28px", marginBottom: "8px", textAlign: "center", color: "var(--color-text-primary)" }}>
-        Welcome Back
-      </h2>
-      <p style={{ color: "var(--color-text-secondary)", textAlign: "center", marginBottom: "24px", fontSize: "14px" }}>
-        Sign in to manage your e-commerce catalog
+    <div className="auth-card">
+      {/* Brand mark */}
+      <div className="auth-brand-mark" aria-hidden="true">S</div>
+
+      <h1 className="auth-title">Welcome Back</h1>
+      <p className="auth-subtitle">
+        Sign in to your ShopSmart account to continue shopping.
       </p>
 
       {error && (
-        <div
-          style={{
-            background: "var(--color-error-surface)",
-            border: "1px solid var(--color-error-border)",
-            color: "var(--color-error)",
-            padding: "12px",
-            borderRadius: "var(--radius)",
-            fontSize: "13px",
-            marginBottom: "16px",
-          }}
-        >
+        <div className="form-error-banner" role="alert">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
-            Email or Username
+      <form onSubmit={handleSubmit} className="auth-form" noValidate>
+        <div className="form-field">
+          <label className="form-label" htmlFor="login-identifier">
+            EMAIL OR USERNAME
           </label>
           <input
+            id="login-identifier"
             type="text"
+            className="form-input"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="Enter your email or username"
+            placeholder="user@example.com"
             required
-            style={{
-              padding: "10px 12px",
-              borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              color: "var(--color-text-primary)",
-              fontSize: "14px",
-              outline: "none",
-            }}
+            autoComplete="username"
+            autoFocus
           />
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
-            Password
+        <div className="form-field">
+          <label className="form-label" htmlFor="login-password">
+            PASSWORD
           </label>
-          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+          <div className="form-input-wrapper">
             <input
+              id="login-password"
               type={showPassword ? "text" : "password"}
+              className="form-input form-input-with-icon"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              style={{
-                padding: "10px 12px",
-                paddingRight: "50px",
-                borderRadius: "var(--radius)",
-                border: "1px solid var(--color-border)",
-                background: "var(--color-surface)",
-                color: "var(--color-text-primary)",
-                fontSize: "14px",
-                outline: "none",
-                width: "100%",
-                boxSizing: "border-box",
-              }}
+              autoComplete="current-password"
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              style={{
-                position: "absolute",
-                right: "12px",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-                color: "var(--color-text-secondary)",
-                fontSize: "12px",
-                fontWeight: 600,
-              }}
+              className="form-input-icon-btn"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? "Hide" : "Show"}
+              {showPassword ? <IconEyeOff /> : <IconEye />}
             </button>
           </div>
         </div>
 
         <button
+          id="login-submit"
           type="submit"
-          className={`btn btn-primary ${isSubmitting ? "btn-loading" : ""}`}
+          className={`btn btn-primary auth-submit-btn${isSubmitting ? " btn-loading" : ""}`}
           disabled={isSubmitting}
-          style={{ marginTop: "8px", height: "42px" }}
         >
           {isSubmitting ? "" : "Sign In"}
         </button>
       </form>
 
-      <p style={{ marginTop: "24px", textAlign: "center", fontSize: "13px", color: "var(--color-text-secondary)" }}>
+      <p className="auth-footer-text">
         Don&apos;t have an account?{" "}
-        <Link href="/register" style={{ color: "var(--color-primary)", fontWeight: 600, textDecoration: "none" }}>
+        <Link href="/register" className="auth-footer-link">
           Create one
         </Link>
       </p>
