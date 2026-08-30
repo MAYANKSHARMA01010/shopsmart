@@ -1,8 +1,10 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
+
 import { useAuthStore } from "./store/authStore";
 import { authService } from "./services/authService";
+
 import type { User, LoginFormValues, RegisterFormValues, UpdateProfileFormValues } from "./types/authSchema";
 import toast from "react-hot-toast";
 import { useCartStore } from "../cart/store/cartStore";
@@ -41,40 +43,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const res = await authService.getMe();
           updateUser(res.data.user);
-        } catch (error) {
-          console.error("Failed to load user profile on mount (server might be restarting):", error);
-          // We intentionally DO NOT call clearAuth() here.
-          // apiClient.ts already handles clearing auth if the token is genuinely invalid (401).
-          // If we clear it here, the user gets logged out every time the server restarts or goes offline!
+        } catch (error: unknown) {
+          const msg = error instanceof Error ? error.message : "";
+          // If the user no longer exists in the database (e.g. after a DB reset),
+          // we must clear all persisted auth state so the user is logged out.
+          // We distinguish this from a transient server restart by checking the message.
+          const isUserGone =
+            msg.toLowerCase().includes("user not found") ||
+            msg.toLowerCase().includes("not found");
+
+          if (isUserGone) {
+            console.warn("[AuthContext] User no longer exists in DB. Clearing auth state.");
+            clearAuth();
+            useCartStore.getState().resetCart();
+            useWishlistStore.getState().resetWishlist();
+          } else {
+            // Transient error (server restarting, network blip) — keep logged in silently
+            console.error("Failed to load user profile on mount (server might be restarting):", error);
+          }
         }
       }
       setIsLoading(false);
     };
 
     initAuth();
-  }, [accessToken, isHydrated, updateUser, clearAuth]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken, isHydrated]);
 
-  const login = async (values: LoginFormValues) => {
+  const login = useCallback(async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
       const res = await authService.login(values);
       setAuth(res.data.user, res.data.accessToken, res.data.refreshToken);
+      try {
+        await useCartStore.getState().mergeGuestCart();
+        await useCartStore.getState().fetchCart();
+      } catch (e) {
+        console.error("Cart sync error on login:", e);
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setAuth]);
 
-  const register = async (values: RegisterFormValues) => {
+  const register = useCallback(async (values: RegisterFormValues) => {
     setIsLoading(true);
     try {
       const res = await authService.register(values);
       setAuth(res.data.user, res.data.accessToken, res.data.refreshToken);
+      try {
+        await useCartStore.getState().mergeGuestCart();
+        await useCartStore.getState().fetchCart();
+      } catch (e) {
+        console.error("Cart sync error on register:", e);
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setAuth]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     setIsLoading(true);
     try {
       if (refreshToken) {
@@ -90,29 +118,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       useWishlistStore.getState().resetWishlist();
       setIsLoading(false);
     }
-  };
+  }, [refreshToken, clearAuth]);
 
-  const updateProfile = async (values: UpdateProfileFormValues) => {
+  const updateProfile = useCallback(async (values: UpdateProfileFormValues) => {
     const res = await authService.updateProfile(values);
     updateUser(res.data.user);
-  };
+  }, [updateUser]);
+
+  const value = React.useMemo<AuthContextType>(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      login,
+      register,
+      logout,
+      updateProfile,
+    }),
+    [user, isLoading, login, register, logout, updateProfile]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        login,
-        register,
-        logout,
-        updateProfile,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 }
+
 
 export function useAuth() {
   const context = useContext(AuthContext);
