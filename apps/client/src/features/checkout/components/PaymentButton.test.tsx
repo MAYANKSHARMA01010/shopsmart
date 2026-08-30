@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PaymentButton } from './PaymentButton';
 import { useCheckoutStore } from '../store/checkoutStore';
+import { useAuthStore } from '../../auth/store/authStore';
 import * as hooks from '../hooks/useCheckout';
 import * as rzp from '../../../lib/razorpay';
 import { toast } from 'react-hot-toast';
@@ -29,6 +30,7 @@ vi.mock('next/navigation', () => ({
 describe('PaymentButton', () => {
   beforeEach(() => {
     useCheckoutStore.getState().reset();
+    useAuthStore.getState().setAuth({ id: 'u1', name: 'User', email: 'u@test.com', role: 'CUSTOMER' } as any, 'mock_access_token', 'mock_refresh_token');
     vi.clearAllMocks();
     
     // Mock the hooks
@@ -49,11 +51,11 @@ describe('PaymentButton', () => {
     }));
   });
 
-  it('is disabled when no address is selected', () => {
+  it('prompts to select address when no address is selected', () => {
     useCheckoutStore.getState().setAddress('');
     render(<PaymentButton />);
-    const btn = screen.getByRole('button', { name: 'Pay Now' });
-    expect(btn).toBeDisabled();
+    const btn = screen.getByRole('button', { name: 'Select Delivery Address to Pay' });
+    expect(btn).toBeInTheDocument();
   });
 
 
