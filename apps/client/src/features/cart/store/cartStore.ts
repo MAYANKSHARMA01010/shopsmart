@@ -11,6 +11,7 @@ interface CartState {
 
   // Actions
   fetchCart: () => Promise<void>;
+  _silentSync: () => Promise<void>;
   addItem: (product: CartProduct, quantity: number) => Promise<void>;
   updateQuantity: (productId: string, quantity: number) => Promise<void>;
   removeItem: (productId: string) => Promise<void>;
@@ -18,6 +19,7 @@ interface CartState {
   mergeGuestCart: () => Promise<void>;
   resetCart: () => void;
 }
+
 
 const getEmptyCart = (): Cart => ({
   id: "guest",
@@ -38,6 +40,15 @@ const computeGuestTotals = (items: CartItem[]) => {
   return { totalItems, subtotal };
 };
 
+/**
+ * Compute optimistic cart totals from the current items list.
+ * Used to instantly reflect UI changes before the server responds.
+ */
+const applyOptimisticItems = (currentCart: Cart, newItems: CartItem[]): Cart => {
+  const { totalItems, subtotal } = computeGuestTotals(newItems);
+  return { ...currentCart, items: newItems, totalItems, subtotal };
+};
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
@@ -47,7 +58,7 @@ export const useCartStore = create<CartState>()(
 
       fetchCart: async () => {
         const token = useAuthStore.getState().accessToken;
-        if (!token) return; // Guest mode - keep local cart
+        if (!token) return;
 
         set({ isLoading: true, error: null });
         try {
@@ -63,25 +74,63 @@ export const useCartStore = create<CartState>()(
         }
       },
 
+      // Silent background sync — does NOT set isLoading so UI buttons stay responsive.
+      // Used by error-recovery paths (remove/update failures) to get authoritative
+      // server state without blocking the user.
+      _silentSync: async () => {
+        const token = useAuthStore.getState().accessToken;
+        if (!token) return;
+        try {
+          const res = await cartService.getCart();
+          if (res.success) set({ cart: res.data, error: null });
+        } catch {
+          // Silent — next explicit fetchCart will correct state
+        }
+      },
+
       addItem: async (product: CartProduct, quantity: number) => {
         const token = useAuthStore.getState().accessToken;
+
         if (token) {
-          // Authenticated Sync
-          set({ isLoading: true, error: null });
+          // ── Optimistic update: apply immediately before network call ──
+          const prevCart = get().cart;
+          const existingIdx = prevCart.items.findIndex((i) => i.productId === product.id);
+          let optimisticItems = [...prevCart.items];
+
+          if (existingIdx > -1) {
+            const existing = optimisticItems[existingIdx];
+            const newQty = Math.min(existing.quantity + quantity, product.stock, 10);
+            optimisticItems[existingIdx] = { ...existing, quantity: newQty };
+          } else {
+            if (optimisticItems.length >= 50) {
+              throw new Error("Cannot add item. Cart has reached maximum limit of 50 unique items.");
+            }
+            const newQty = Math.min(quantity, product.stock, 10);
+            optimisticItems.push({
+              id: `optimistic-${product.id}`,
+              productId: product.id,
+              quantity: newQty,
+              product,
+              warnings: [],
+            });
+          }
+
+          // Apply optimistic state immediately — UI feels instant
+          set({ cart: applyOptimisticItems(prevCart, optimisticItems), error: null });
+
           try {
             const res = await cartService.addItem(product.id, quantity);
             if (res.success) {
+              // Reconcile with server truth (handles edge cases like stock limits)
               set({ cart: res.data });
             }
           } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to add item";
-            set({ error: message });
+            // Rollback on failure
+            set({ cart: prevCart, error: err instanceof Error ? err.message : "Failed to add item" });
             throw err;
-          } finally {
-            set({ isLoading: false });
           }
         } else {
-          // Guest local updates
+          // Guest local updates (already instant)
           const currentCart = get().cart;
           const existingItemIndex = currentCart.items.findIndex(
             (item) => item.productId === product.id
@@ -92,7 +141,7 @@ export const useCartStore = create<CartState>()(
           if (existingItemIndex > -1) {
             const existingItem = newItems[existingItemIndex];
             const newQty = Math.min(existingItem.quantity + quantity, product.stock, 10);
-            
+
             const warnings: string[] = [];
             if (!product.isVisible) {
               warnings.push("This product is currently unavailable.");
@@ -100,11 +149,7 @@ export const useCartStore = create<CartState>()(
               warnings.push("Requested quantity exceeds available stock.");
             }
 
-            newItems[existingItemIndex] = {
-              ...existingItem,
-              quantity: newQty,
-              warnings,
-            };
+            newItems[existingItemIndex] = { ...existingItem, quantity: newQty, warnings };
           } else {
             if (currentCart.items.length >= 50) {
               throw new Error("Cannot add item. Cart has reached maximum limit of 50 unique items.");
@@ -127,41 +172,40 @@ export const useCartStore = create<CartState>()(
             });
           }
 
-          const { totalItems, subtotal } = computeGuestTotals(newItems);
-          set({
-            cart: {
-              ...currentCart,
-              items: newItems,
-              totalItems,
-              subtotal,
-            },
-          });
+          set({ cart: applyOptimisticItems(currentCart, newItems) });
         }
       },
 
       updateQuantity: async (productId: string, quantity: number) => {
         const token = useAuthStore.getState().accessToken;
+
         if (token) {
-          // Authenticated Sync
-          set({ isLoading: true, error: null });
+          // ── Optimistic update ──
+          const prevCart = get().cart;
+          const itemIndex = prevCart.items.findIndex((i) => i.productId === productId);
+
+          if (itemIndex > -1) {
+            const item = prevCart.items[itemIndex];
+            const newQty = Math.min(quantity, item.product.stock, 10);
+            const newItems = [...prevCart.items];
+            newItems[itemIndex] = { ...item, quantity: newQty };
+            set({ cart: applyOptimisticItems(prevCart, newItems), error: null });
+          }
+
           try {
             const res = await cartService.updateQuantity(productId, quantity);
             if (res.success) {
               set({ cart: res.data });
             }
-          } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to update quantity";
-            set({ error: message });
-            throw err;
-          } finally {
-            set({ isLoading: false });
+          } catch {
+            // Silent sync — do NOT rollback (would restore stale state).
+            // Just get authoritative server state without blocking UI.
+            await get()._silentSync();
           }
         } else {
           // Guest local updates
           const currentCart = get().cart;
-          const itemIndex = currentCart.items.findIndex(
-            (item) => item.productId === productId
-          );
+          const itemIndex = currentCart.items.findIndex((item) => item.productId === productId);
 
           if (itemIndex > -1) {
             const item = currentCart.items[itemIndex];
@@ -176,77 +220,60 @@ export const useCartStore = create<CartState>()(
             }
 
             const newItems = [...currentCart.items];
-            newItems[itemIndex] = {
-              ...item,
-              quantity: newQty,
-              warnings,
-            };
-
-            const { totalItems, subtotal } = computeGuestTotals(newItems);
-            set({
-              cart: {
-                ...currentCart,
-                items: newItems,
-                totalItems,
-                subtotal,
-              },
-            });
+            newItems[itemIndex] = { ...item, quantity: newQty, warnings };
+            set({ cart: applyOptimisticItems(currentCart, newItems) });
           }
         }
       },
 
       removeItem: async (productId: string) => {
         const token = useAuthStore.getState().accessToken;
+
         if (token) {
-          // Authenticated Sync
-          set({ isLoading: true, error: null });
+          // ── Optimistic update: remove immediately ──
+          const prevCart = get().cart;
+          const newItems = prevCart.items.filter((item) => item.productId !== productId);
+          set({ cart: applyOptimisticItems(prevCart, newItems), error: null });
+
           try {
             const res = await cartService.removeItem(productId);
             if (res.success) {
+              // Reconcile with server (handles totals, discounts, etc.)
               set({ cart: res.data });
             }
-          } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to remove item";
-            set({ error: message });
-            throw err;
-          } finally {
-            set({ isLoading: false });
+          } catch {
+            // Do NOT rollback to prevCart — prevCart may be stale Redis data.
+            // Rolling back causes: item reappears → fetchCart empties cart → "system fucked".
+            // Instead: keep optimistic state (item gone) and silently sync with server truth.
+            await get()._silentSync();
           }
         } else {
           // Guest local updates
           const currentCart = get().cart;
           const newItems = currentCart.items.filter((item) => item.productId !== productId);
-          const { totalItems, subtotal } = computeGuestTotals(newItems);
-          set({
-            cart: {
-              ...currentCart,
-              items: newItems,
-              totalItems,
-              subtotal,
-            },
-          });
+          set({ cart: applyOptimisticItems(currentCart, newItems) });
         }
       },
 
       clearCart: async () => {
         const token = useAuthStore.getState().accessToken;
+
         if (token) {
-          // Authenticated Sync
-          set({ isLoading: true, error: null });
+          const prevCart = get().cart;
+          // Optimistic clear
+          set({ cart: getEmptyCart(), error: null });
+
           try {
             const res = await cartService.clearCart();
-            if (res.success) {
-              set({ cart: getEmptyCart() });
+            if (!res.success) {
+              set({ cart: prevCart });
             }
           } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to clear cart";
-            set({ error: message });
+            // Rollback
+            set({ cart: prevCart, error: err instanceof Error ? err.message : "Failed to clear cart" });
             throw err;
-          } finally {
-            set({ isLoading: false });
           }
         } else {
-          // Guest local updates
           set({ cart: getEmptyCart() });
         }
       },
@@ -283,7 +310,6 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "shopsmart-cart",
-      // Only persist the cart state
       partialize: (state) => ({ cart: state.cart }),
     }
   )
