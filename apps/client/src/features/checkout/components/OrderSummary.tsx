@@ -1,64 +1,90 @@
-import React from 'react';
-import { useCartStore } from '../../cart/store/cartStore';
-import { useCheckoutStore } from '../store/checkoutStore';
+import React, { useMemo } from "react";
+import { useCart } from "@/features/cart";
+import { useCheckoutStore } from "../store/checkoutStore";
+import { formatPrice } from "@/features/products";
+
 
 export const OrderSummary: React.FC = () => {
-  const { cart } = useCartStore();
+  const { cart, items } = useCart();
   const { couponCode } = useCheckoutStore();
 
-  const subtotal = parseFloat(cart.subtotal) || 0;
-  // 10% coupon discount
-  const discount = couponCode ? subtotal * 0.1 : 0;
-  const taxableAmount = Math.max(0, subtotal - discount);
-  const tax = taxableAmount * 0.10; // 10% GST matching backend checkout.service
-  const shipping = subtotal > 0 ? 50 : 0; // Flat ₹50 shipping matching backend checkout.service
-  const total = taxableAmount + tax + shipping;
+  const subtotal = useMemo(() => Number.parseFloat(cart.subtotal) || 0, [cart.subtotal]);
+  const discount = useMemo(() => (couponCode ? Math.round(subtotal * 0.1) : 0), [couponCode, subtotal]);
+  const taxableAmount = useMemo(() => Math.max(0, subtotal - discount), [subtotal, discount]);
+  const tax = useMemo(() => taxableAmount * 0.10, [taxableAmount]); // 10% GST
+  const shipping = useMemo(() => (subtotal >= 500 || subtotal === 0 ? 0 : 50), [subtotal]);
+  const total = useMemo(() => taxableAmount + tax + shipping, [taxableAmount, tax, shipping]);
+
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800">Order Summary</h2>
-      
-      <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
+    <div className="profile-section-card" style={{ padding: "var(--space-6)" }}>
+      <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", margin: 0, paddingBottom: "var(--space-3)", borderBottom: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}>
+        Order Summary
+      </h2>
+
+      {/* Item preview list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", margin: "var(--space-4) 0", maxHeight: "220px", overflowY: "auto" }}>
         {cart.items.map((item) => (
-          <div key={item.productId} className="flex justify-between text-sm">
-            <div className="flex flex-col">
-              <span className="text-gray-800 font-medium">{item.product.name}</span>
-              <span className="text-gray-500">Qty: {item.quantity}</span>
+          <div key={item.productId} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", fontSize: "0.875rem" }}>
+            <div>
+              <div style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>{item.product.name}</div>
+              <div style={{ color: "var(--color-text-muted)", fontSize: "0.78rem" }}>Qty: {item.quantity}</div>
             </div>
-            <span className="text-gray-800 font-medium">
-              ₹{(parseFloat(item.product.basePrice) * item.quantity).toFixed(2)}
-            </span>
+            <div style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--color-text-primary)" }}>
+              ₹{formatPrice(Number.parseFloat(String(item.product.basePrice)) * item.quantity)}
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="border-t border-gray-200 pt-4 space-y-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-gray-600">Subtotal</span>
-          <span className="text-gray-800 font-medium">₹{subtotal.toFixed(2)}</span>
+      {/* Breakdown */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border)", fontSize: "0.875rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-text-secondary)" }}>
+          <span>Subtotal</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--color-text-primary)" }}>
+            ₹{formatPrice(subtotal)}
+          </span>
         </div>
-        
+
         {discount > 0 && (
-          <div className="flex justify-between text-green-600">
+          <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-success)" }}>
             <span>Discount ({couponCode})</span>
-            <span>-₹{discount.toFixed(2)}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>
+              -₹{formatPrice(discount)}
+            </span>
           </div>
         )}
 
-        <div className="flex justify-between">
-          <span className="text-gray-600">Tax (10% GST)</span>
-          <span className="text-gray-800 font-medium">₹{tax.toFixed(2)}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-text-secondary)" }}>
+          <span>Tax (10% GST)</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--color-text-primary)" }}>
+            ₹{formatPrice(tax)}
+          </span>
         </div>
 
-        <div className="flex justify-between">
-          <span className="text-gray-600">Shipping</span>
-          <span className="text-gray-800 font-medium">₹{shipping.toFixed(2)}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-text-secondary)" }}>
+          <span>Shipping</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: shipping === 0 ? "var(--color-success)" : "var(--color-text-primary)" }}>
+            {shipping === 0 ? "FREE" : `₹${formatPrice(shipping)}`}
+          </span>
         </div>
       </div>
 
-      <div className="border-t border-gray-200 mt-4 pt-4 flex justify-between items-center">
-        <span className="text-lg font-bold text-gray-800">Total</span>
-        <span className="text-2xl font-bold text-primary-600">₹{total.toFixed(2)}</span>
+      {/* Total */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: "var(--space-4)",
+          paddingTop: "var(--space-3)",
+          borderTop: "1px solid var(--color-border)",
+        }}
+      >
+        <span style={{ fontWeight: 700, fontSize: "1rem", color: "var(--color-text-primary)" }}>Total</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: "1.4rem", color: "var(--color-primary)" }}>
+          ₹{formatPrice(total)}
+        </span>
       </div>
     </div>
   );
