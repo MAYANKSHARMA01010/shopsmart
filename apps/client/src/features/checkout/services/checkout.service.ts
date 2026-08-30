@@ -14,13 +14,23 @@ export interface VerifyPaymentParams {
 }
 
 export const checkoutService = {
-  initializeCheckout: async (params: InitializeCheckoutParams) => {
-    const { data } = await api.post('/api/checkout/initialize', params);
-    return data;
+  initializeCheckout: async (params: InitializeCheckoutParams, idempotencyKey?: string) => {
+    const key =
+      idempotencyKey ||
+      (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `idem_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+
+    const res: any = await api.post('/checkout/initialize', params, {
+      headers: {
+        'Idempotency-Key': key,
+      },
+    });
+    return res;
   },
 
   verifyPayment: async (params: VerifyPaymentParams) => {
-    const { data } = await api.post('/api/payment/verify', params);
-    return data;
+    const res: any = await api.post('/payment/verify', params);
+    return res;
   }
 };
