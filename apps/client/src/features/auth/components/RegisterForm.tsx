@@ -1,15 +1,50 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../AuthContext";
 import Link from "next/link";
-
 import toast from "react-hot-toast";
+
+function IconEyeOff() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+
+function IconEye() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function IconCheck() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function PasswordRequirement({ met, label }: { met: boolean; label: string }) {
+  return (
+    <span className={`pw-req${met ? " met" : ""}`}>
+      <IconCheck /> {label}
+    </span>
+  );
+}
 
 export function RegisterForm() {
   const { register } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/products";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -18,6 +53,13 @@ export function RegisterForm() {
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const pwChecks = {
+    length:    password.length >= 8,
+    number:    /\d/.test(password),
+    uppercase: /[A-Z]/.test(password),
+    special:   /[^A-Za-z0-9]/.test(password),
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,9 +82,9 @@ export function RegisterForm() {
         phone: phone || undefined,
       });
       toast.success("Account created successfully!");
-      router.push("/products");
-    } catch (err: any) {
-      const msg = err.message || "Registration failed. Try again.";
+      router.push(redirectUrl);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Registration failed. Try again.";
       setError(msg);
       toast.error(msg);
     } finally {
@@ -51,175 +93,151 @@ export function RegisterForm() {
   };
 
   return (
-    <div className="card" style={{ maxWidth: "460px", margin: "40px auto", width: "100%", padding: "32px" }}>
-      <h2 style={{ fontFamily: "var(--font-display)", fontSize: "28px", marginBottom: "8px", textAlign: "center", color: "var(--color-text-primary)" }}>
-        Create Account
-      </h2>
-      <p style={{ color: "var(--color-text-secondary)", textAlign: "center", marginBottom: "24px", fontSize: "14px" }}>
-        Sign up to start listing and purchasing products
+    <div className="auth-card auth-card-wide">
+      {/* Brand mark */}
+      <div className="auth-brand-mark" aria-hidden="true">S</div>
+
+      <h1 className="auth-title">Create Your Account</h1>
+      <p className="auth-subtitle">
+        Join ShopSmart for curated artisanal finds, fast checkout, and order tracking.
       </p>
 
       {error && (
-        <div
-          style={{
-            background: "var(--color-error-surface)",
-            border: "1px solid var(--color-error-border)",
-            color: "var(--color-error)",
-            padding: "12px",
-            borderRadius: "var(--radius)",
-            fontSize: "13px",
-            marginBottom: "16px",
-          }}
-        >
+        <div className="form-error-banner" role="alert">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
-            Full Name <span style={{ color: "var(--color-error)" }}>*</span>
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="John Doe"
-            required
-            style={{
-              padding: "10px 12px",
-              borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              color: "var(--color-text-primary)",
-              fontSize: "14px",
-              outline: "none",
-            }}
-          />
+      <form onSubmit={handleSubmit} className="auth-form" noValidate>
+        {/* Name + Username row */}
+        <div className="form-grid">
+          <div className="form-field">
+            <label className="form-label" htmlFor="reg-name">
+              FULL NAME <span className="form-required">*</span>
+            </label>
+            <input
+              id="reg-name"
+              type="text"
+              className="form-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Mayank Sharma"
+              required
+              autoComplete="name"
+              autoFocus
+            />
+          </div>
+
+          <div className="form-field">
+            <label className="form-label" htmlFor="reg-username">
+              USERNAME
+            </label>
+            <input
+              id="reg-username"
+              type="text"
+              className="form-input"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="mayank_s"
+              autoComplete="username"
+            />
+          </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
-            Email Address <span style={{ color: "var(--color-error)" }}>*</span>
+        {/* Email */}
+        <div className="form-field">
+          <label className="form-label" htmlFor="reg-email">
+            EMAIL ADDRESS <span className="form-required">*</span>
           </label>
           <input
+            id="reg-email"
             type="email"
+            className="form-input"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="john@example.com"
+            placeholder="user@domain.com"
             required
-            style={{
-              padding: "10px 12px",
-              borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              color: "var(--color-text-primary)",
-              fontSize: "14px",
-              outline: "none",
-            }}
+            autoComplete="email"
           />
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
-            Username <span style={{ color: "var(--color-text-muted)", fontWeight: "normal" }}>(Optional)</span>
+        {/* Password */}
+        <div className="form-field">
+          <label className="form-label" htmlFor="reg-password">
+            PASSWORD <span className="form-required">*</span>
           </label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="johndoe"
-            style={{
-              padding: "10px 12px",
-              borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              color: "var(--color-text-primary)",
-              fontSize: "14px",
-              outline: "none",
-            }}
-          />
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
-            Phone Number <span style={{ color: "var(--color-text-muted)", fontWeight: "normal" }}>(Optional)</span>
-          </label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+919876543210"
-            style={{
-              padding: "10px 12px",
-              borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              color: "var(--color-text-primary)",
-              fontSize: "14px",
-              outline: "none",
-            }}
-          />
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
-            Password <span style={{ color: "var(--color-error)" }}>*</span>
-          </label>
-          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+          <div className="form-input-wrapper">
             <input
+              id="reg-password"
               type={showPassword ? "text" : "password"}
+              className="form-input form-input-with-icon"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min 8 chars, uppercase, number, special char"
+              placeholder="••••••••"
               required
-              style={{
-                padding: "10px 12px",
-                paddingRight: "50px",
-                borderRadius: "var(--radius)",
-                border: "1px solid var(--color-border)",
-                background: "var(--color-surface)",
-                color: "var(--color-text-primary)",
-                fontSize: "14px",
-                outline: "none",
-                width: "100%",
-                boxSizing: "border-box",
-              }}
+              autoComplete="new-password"
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              style={{
-                position: "absolute",
-                right: "12px",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-                color: "var(--color-text-secondary)",
-                fontSize: "12px",
-                fontWeight: 600,
-              }}
+              className="form-input-icon-btn"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? "Hide" : "Show"}
+              {showPassword ? <IconEyeOff /> : <IconEye />}
             </button>
+          </div>
+
+          {/* Password strength indicators */}
+          {password.length > 0 && (
+            <div className="pw-requirements">
+              <PasswordRequirement met={pwChecks.length}    label="8+ chars" />
+              <PasswordRequirement met={pwChecks.uppercase} label="1 uppercase" />
+              <PasswordRequirement met={pwChecks.number}    label="1 number" />
+              <PasswordRequirement met={pwChecks.special}   label="1 special" />
+            </div>
+          )}
+        </div>
+
+        {/* Phone */}
+        <div className="form-field">
+          <label className="form-label" htmlFor="reg-phone">
+            PHONE NUMBER <span className="form-label-opt">(Optional)</span>
+          </label>
+          <div className="form-phone-row">
+            <div className="form-phone-code">+91</div>
+            <input
+              id="reg-phone"
+              type="tel"
+              className="form-input form-input-phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="98765 43210"
+              autoComplete="tel"
+            />
           </div>
         </div>
 
         <button
+          id="register-submit"
           type="submit"
-          className={`btn btn-primary ${isSubmitting ? "btn-loading" : ""}`}
+          className={`btn btn-primary auth-submit-btn${isSubmitting ? " btn-loading" : ""}`}
           disabled={isSubmitting}
-          style={{ marginTop: "8px", height: "42px" }}
         >
           {isSubmitting ? "" : "Create Account"}
         </button>
       </form>
 
-      <p style={{ marginTop: "24px", textAlign: "center", fontSize: "13px", color: "var(--color-text-secondary)" }}>
+      <p className="auth-legal-text">
+        By signing up, you agree to ShopSmart&apos;s{" "}
+        <Link href="/terms" className="auth-footer-link">Terms of Service</Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="auth-footer-link">Privacy Policy</Link>.
+      </p>
+
+      <p className="auth-footer-text">
         Already have an account?{" "}
-        <Link href="/login" style={{ color: "var(--color-primary)", fontWeight: 600, textDecoration: "none" }}>
-          Sign In
+        <Link href="/login" className="auth-footer-link">
+          Sign in here
         </Link>
       </p>
     </div>
