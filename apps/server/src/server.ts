@@ -29,7 +29,8 @@ if (env.NODE_ENV !== 'test') {
 }
 
 const app = express();
-const PORT = env.SERVER_PORT || 5001;
+const PORT = process.env.PORT || env.SERVER_PORT || 5001;
+
 
 // Security & rate limiting middlewares
 app.use(helmet());

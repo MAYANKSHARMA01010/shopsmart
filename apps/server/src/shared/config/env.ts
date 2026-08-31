@@ -6,7 +6,8 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   VITEST: z.string().optional(),
-  SERVER_PORT: z.string().default('5001'),
+  SERVER_PORT: z.string().default(process.env.PORT || '5001'),
+
   
   // URLs & Domains
   FRONTEND_LOCAL_URL: z.string().url().default('http://localhost:3000'),
