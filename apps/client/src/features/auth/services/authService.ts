@@ -53,17 +53,18 @@ export const authService = {
   verifyPhone: (): Promise<UserResponse> =>
     apiClient.post("/auth/verify-phone"),
 
-  sendEmailOtp: (): Promise<{ status: string; data: { message: string; expiresInSeconds: number; debugOtp?: string } }> =>
+  sendEmailOtp: (): Promise<{ status: string; data: { message: string; expiresInSeconds: number } }> =>
     apiClient.post("/auth/send-email-otp"),
 
   verifyEmailOtp: (otp: string): Promise<UserResponse> =>
     apiClient.post("/auth/verify-email-otp", { otp }),
 
-  sendPhoneOtp: (): Promise<{ status: string; data: { message: string; expiresInSeconds: number; debugOtp?: string } }> =>
+  sendPhoneOtp: (): Promise<{ status: string; data: { message: string; expiresInSeconds: number } }> =>
     apiClient.post("/auth/send-phone-otp"),
 
   verifyPhoneOtp: (otp: string): Promise<UserResponse> =>
     apiClient.post("/auth/verify-phone-otp", { otp }),
 };
+
 
 

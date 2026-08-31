@@ -20,11 +20,13 @@ interface AuthContextType {
   updateProfile: (values: UpdateProfileFormValues) => Promise<void>;
   verifyEmail: () => Promise<void>;
   verifyPhone: () => Promise<void>;
-  sendEmailOtp: () => Promise<{ message: string; expiresInSeconds: number; debugOtp?: string }>;
+  sendEmailOtp: () => Promise<{ message: string; expiresInSeconds: number }>;
   verifyEmailOtp: (otp: string) => Promise<void>;
-  sendPhoneOtp: () => Promise<{ message: string; expiresInSeconds: number; debugOtp?: string }>;
+  sendPhoneOtp: () => Promise<{ message: string; expiresInSeconds: number }>;
   verifyPhoneOtp: (otp: string) => Promise<void>;
 }
+
+
 
 
 

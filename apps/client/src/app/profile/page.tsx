@@ -70,8 +70,8 @@ export default function ProfilePage() {
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [resendTimer, setResendTimer] = useState(30);
-  const [debugOtp, setDebugOtp] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
 
   const {
     register,
@@ -135,15 +135,12 @@ export default function ProfilePage() {
       return;
     }
     setIsSendingOtp(true);
-    setDebugOtp(null);
     try {
       if (type === "email") {
-        const res = await sendEmailOtp();
-        if (res.debugOtp) setDebugOtp(res.debugOtp);
+        await sendEmailOtp();
         toast.success("Verification code sent to your email! (Expires in 5 mins)");
       } else {
-        const res = await sendPhoneOtp();
-        if (res.debugOtp) setDebugOtp(res.debugOtp);
+        await sendPhoneOtp();
         toast.success("Verification code sent to your phone! (Expires in 5 mins)");
       }
       setVerifyType(type);
@@ -160,12 +157,10 @@ export default function ProfilePage() {
     setIsSendingOtp(true);
     try {
       if (verifyType === "email") {
-        const res = await sendEmailOtp();
-        if (res.debugOtp) setDebugOtp(res.debugOtp);
+        await sendEmailOtp();
         toast.success("New verification code sent to your email!");
       } else {
-        const res = await sendPhoneOtp();
-        if (res.debugOtp) setDebugOtp(res.debugOtp);
+        await sendPhoneOtp();
         toast.success("New verification code sent to your phone!");
       }
       setResendTimer(30);
@@ -176,6 +171,7 @@ export default function ProfilePage() {
       setIsSendingOtp(false);
     }
   };
+
 
   const handleConfirmVerification = async () => {
     if (!verifyType) return;
@@ -612,26 +608,7 @@ export default function ProfilePage() {
                 }}
               />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "var(--space-2)", fontSize: "0.78rem" }}>
-                {debugOtp ? (
-                  <button
-                    type="button"
-                    onClick={() => setOtpCode(debugOtp)}
-                    style={{
-                      background: "rgba(59, 130, 246, 0.1)",
-                      border: "1px dashed rgba(59, 130, 246, 0.4)",
-                      padding: "2px 8px",
-                      borderRadius: "var(--radius-sm)",
-                      color: "var(--color-primary)",
-                      cursor: "pointer",
-                      fontSize: "0.72rem",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Auto-fill demo code: {debugOtp}
-                  </button>
-                ) : (
-                  <span style={{ color: "#ef4444", fontWeight: 500 }}>Expires in 5 minutes</span>
-                )}
+                <span style={{ color: "var(--color-text-muted)", fontSize: "0.78rem" }}>Code expires in 5 minutes</span>
                 <button
                   type="button"
                   onClick={handleResendCode}
@@ -649,6 +626,7 @@ export default function ProfilePage() {
                   {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend Code"}
                 </button>
               </div>
+
             </div>
 
             <div style={{ display: "flex", gap: "var(--space-3)" }}>

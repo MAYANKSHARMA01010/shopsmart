@@ -206,16 +206,14 @@ class AuthService {
       userId,
       email: user.email,
       expiresAt,
-      // Log raw OTP only in non-production for frictionless testing
-      debugOtp: env.NODE_ENV !== 'production' ? rawOtp : undefined,
     });
 
     return {
       message: 'Verification code sent to your email. Valid for 5 minutes.',
       expiresInSeconds: 300,
-      debugOtp: env.NODE_ENV !== 'production' ? rawOtp : undefined,
     };
   }
+
 
   async verifyEmailOtp(userId: string, inputOtp: string) {
     if (!inputOtp || inputOtp.trim().length !== 6) {
@@ -280,15 +278,14 @@ class AuthService {
       userId,
       phone: user.phone,
       expiresAt,
-      debugOtp: env.NODE_ENV !== 'production' ? rawOtp : undefined,
     });
 
     return {
       message: 'Verification code sent to your phone number. Valid for 5 minutes.',
       expiresInSeconds: 300,
-      debugOtp: env.NODE_ENV !== 'production' ? rawOtp : undefined,
     };
   }
+
 
   async verifyPhoneOtp(userId: string, inputOtp: string) {
     if (!inputOtp || inputOtp.trim().length !== 6) {
