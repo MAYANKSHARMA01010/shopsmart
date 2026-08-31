@@ -6,8 +6,11 @@ import { AppError } from '../../shared/utils/AppError';
 import { JwtPayload } from './auth.types';
 import { Role } from '@prisma/client';
 import { authRepository } from './auth.repository';
+import { emailService } from '../email/email.service';
+import logger from '../../shared/utils/logger';
 
 const ACCESS_SECRET = env.JWT_ACCESS_SECRET;
+
 const REFRESH_SECRET = env.JWT_REFRESH_SECRET;
 const ACCESS_EXPIRES = env.JWT_ACCESS_EXPIRES_IN;
 const REFRESH_EXPIRES = env.JWT_REFRESH_EXPIRES_IN;
@@ -169,6 +172,162 @@ class AuthService {
     await authRepository.updateUser(userId, { password: passwordHash });
   }
 
+  // ─── Secure OTP Verification Flow (5-Minute Expiry & One-Time Use) ────────
+
+
+  async sendEmailOtp(userId: string) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    // Generate secure 6-digit numeric OTP
+    const rawOtp = crypto.randomInt(100000, 999999).toString();
+    const otpHash = hashToken(rawOtp);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Store hashed OTP in database (invalidates previous OTPs)
+    await authRepository.createOtpToken({
+      userId,
+      type: 'EMAIL_VERIFICATION',
+      target: user.email,
+      otpHash,
+      expiresAt,
+    });
+
+    // Send transactional email with OTP
+    try {
+      await emailService.sendOtpEmail(user.email, user.name, rawOtp, 'Email Address Verification');
+    } catch (err) {
+      logger.error('Failed to dispatch verification email', { error: err });
+    }
+
+    logger.info('otp.email.generated', {
+      userId,
+      email: user.email,
+      expiresAt,
+      // Log raw OTP only in non-production for frictionless testing
+      debugOtp: env.NODE_ENV !== 'production' ? rawOtp : undefined,
+    });
+
+    return {
+      message: 'Verification code sent to your email. Valid for 5 minutes.',
+      expiresInSeconds: 300,
+      debugOtp: env.NODE_ENV !== 'production' ? rawOtp : undefined,
+    };
+  }
+
+  async verifyEmailOtp(userId: string, inputOtp: string) {
+    if (!inputOtp || inputOtp.trim().length !== 6) {
+      throw new AppError('Please enter a valid 6-digit verification code.', 400);
+    }
+
+    const activeOtp = await authRepository.findLatestActiveOtp(userId, 'EMAIL_VERIFICATION');
+    if (!activeOtp) {
+      throw new AppError('Verification code has expired or is invalid. Please request a new code.', 400);
+    }
+
+    // Brute force protection: max 5 failed attempts per OTP
+    if (activeOtp.attempts >= 5) {
+      await authRepository.markOtpAsUsed(activeOtp.id);
+      throw new AppError('Too many failed attempts. This verification code has been revoked. Please request a new one.', 429);
+    }
+
+    const hashedInput = hashToken(inputOtp.trim());
+    if (hashedInput !== activeOtp.otpHash) {
+      await authRepository.incrementOtpAttempts(activeOtp.id);
+      const remaining = 4 - activeOtp.attempts;
+      throw new AppError(`Invalid verification code. ${remaining > 0 ? `${remaining} attempt(s) remaining.` : 'Code revoked.'}`, 400);
+    }
+
+    // Mark OTP as used immediately (expires upon verification)
+    await authRepository.markOtpAsUsed(activeOtp.id);
+
+    // Update user status
+    const updatedUser = await authRepository.updateUser(userId, { isEmailVerified: true });
+    logger.info('otp.email.verified', { userId, email: updatedUser.email });
+
+    return {
+      user: this.sanitizeUser(updatedUser),
+      message: 'Email address verified successfully!',
+    };
+  }
+
+  async sendPhoneOtp(userId: string) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+    if (!user.phone || user.phone.trim() === '') {
+      throw new AppError('Please add a phone number to your profile before verifying.', 400);
+    }
+
+    // Generate secure 6-digit numeric OTP
+    const rawOtp = crypto.randomInt(100000, 999999).toString();
+    const otpHash = hashToken(rawOtp);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Store hashed OTP in database
+    await authRepository.createOtpToken({
+      userId,
+      type: 'PHONE_VERIFICATION',
+      target: user.phone,
+      otpHash,
+      expiresAt,
+    });
+
+    logger.info('otp.phone.generated', {
+      userId,
+      phone: user.phone,
+      expiresAt,
+      debugOtp: env.NODE_ENV !== 'production' ? rawOtp : undefined,
+    });
+
+    return {
+      message: 'Verification code sent to your phone number. Valid for 5 minutes.',
+      expiresInSeconds: 300,
+      debugOtp: env.NODE_ENV !== 'production' ? rawOtp : undefined,
+    };
+  }
+
+  async verifyPhoneOtp(userId: string, inputOtp: string) {
+    if (!inputOtp || inputOtp.trim().length !== 6) {
+      throw new AppError('Please enter a valid 6-digit verification code.', 400);
+    }
+
+    const activeOtp = await authRepository.findLatestActiveOtp(userId, 'PHONE_VERIFICATION');
+    if (!activeOtp) {
+      throw new AppError('Verification code has expired or is invalid. Please request a new code.', 400);
+    }
+
+    // Brute force protection: max 5 failed attempts
+    if (activeOtp.attempts >= 5) {
+      await authRepository.markOtpAsUsed(activeOtp.id);
+      throw new AppError('Too many failed attempts. This verification code has been revoked. Please request a new one.', 429);
+    }
+
+    const hashedInput = hashToken(inputOtp.trim());
+    if (hashedInput !== activeOtp.otpHash) {
+      await authRepository.incrementOtpAttempts(activeOtp.id);
+      const remaining = 4 - activeOtp.attempts;
+      throw new AppError(`Invalid verification code. ${remaining > 0 ? `${remaining} attempt(s) remaining.` : 'Code revoked.'}`, 400);
+    }
+
+    // Mark OTP as used immediately (expires upon verification)
+    await authRepository.markOtpAsUsed(activeOtp.id);
+
+    // Update user status
+    const updatedUser = await authRepository.updateUser(userId, { isPhoneVerified: true });
+    logger.info('otp.phone.verified', { userId, phone: updatedUser.phone });
+
+    return {
+      user: this.sanitizeUser(updatedUser),
+      message: 'Phone number verified successfully!',
+    };
+  }
+
+  // ─── Legacy / Direct verification fallback ────────────────────────────────
+
   async verifyEmail(userId: string) {
     const user = await authRepository.findUserById(userId);
     if (!user) {
@@ -191,6 +350,7 @@ class AuthService {
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
+
 
 
   private generateTokenPair(user: { id: string; email: string; role: Role }) {

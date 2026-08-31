@@ -80,6 +80,65 @@ export class AuthRepository {
       data: { isRevoked: true },
     });
   }
+
+  // ─── OTP Token Management ───────────────────────────────────────────────────
+
+  async createOtpToken(data: {
+    userId: string;
+    type: 'EMAIL_VERIFICATION' | 'PHONE_VERIFICATION';
+    target: string;
+    otpHash: string;
+    expiresAt: Date;
+  }) {
+    // Invalidate existing unused OTPs of the same type for this user
+    await prisma.otpToken.updateMany({
+      where: {
+        userId: data.userId,
+        type: data.type,
+        isUsed: false,
+      },
+      data: { isUsed: true },
+    });
+
+    return prisma.otpToken.create({
+      data: {
+        userId: data.userId,
+        type: data.type,
+        target: data.target,
+        otpHash: data.otpHash,
+        expiresAt: data.expiresAt,
+        isUsed: false,
+        attempts: 0,
+      },
+    });
+  }
+
+  async findLatestActiveOtp(userId: string, type: 'EMAIL_VERIFICATION' | 'PHONE_VERIFICATION') {
+    return prisma.otpToken.findFirst({
+      where: {
+        userId,
+        type,
+        isUsed: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async incrementOtpAttempts(id: string) {
+    return prisma.otpToken.update({
+      where: { id },
+      data: { attempts: { increment: 1 } },
+    });
+  }
+
+  async markOtpAsUsed(id: string) {
+    return prisma.otpToken.update({
+      where: { id },
+      data: { isUsed: true },
+    });
+  }
 }
 
 export const authRepository = new AuthRepository();
+

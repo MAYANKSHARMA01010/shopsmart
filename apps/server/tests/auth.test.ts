@@ -202,4 +202,85 @@ describe('ShopSmart — Auth Integration Tests', () => {
       expect(refreshRes.status).toBe(401);
     });
   });
+
+  describe('OTP Verification Flow (5-Minute Expiry & One-Time Use)', () => {
+    it('should generate a 5-minute expiring OTP for email verification and verify it', async () => {
+      // 1. Send OTP
+      const sendRes = await request(app)
+        .post('/api/v1/auth/send-email-otp')
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(sendRes.status).toBe(200);
+      expect(sendRes.body.data.expiresInSeconds).toBe(300);
+      const generatedOtp = sendRes.body.data.debugOtp;
+      expect(generatedOtp).toBeDefined();
+
+      // 2. Fail with invalid OTP
+      const failRes = await request(app)
+        .post('/api/v1/auth/verify-email-otp')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ otp: '000000' });
+
+      expect(failRes.status).toBe(400);
+      expect(failRes.body.message).toContain('Invalid verification code');
+
+      // 3. Succeed with valid OTP
+      const verifyRes = await request(app)
+        .post('/api/v1/auth/verify-email-otp')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ otp: generatedOtp });
+
+      expect(verifyRes.status).toBe(200);
+      expect(verifyRes.body.data.user.isEmailVerified).toBe(true);
+
+      // 4. Reusing the OTP immediately fails (one-time use / expired on verify)
+      const reuseRes = await request(app)
+        .post('/api/v1/auth/verify-email-otp')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ otp: generatedOtp });
+
+      expect(reuseRes.status).toBe(400);
+    });
+
+    it('should reject phone OTP when phone is not set, and verify successfully when set', async () => {
+      // 0. Reset phone to empty
+      await request(app)
+        .put('/api/v1/auth/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ phone: '' });
+
+      // 1. Send phone OTP without phone set -> 400
+      const sendNoPhoneRes = await request(app)
+        .post('/api/v1/auth/send-phone-otp')
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(sendNoPhoneRes.status).toBe(400);
+
+      // 2. Update profile with phone
+      await request(app)
+        .put('/api/v1/auth/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ phone: '+919876543210' });
+
+
+      // 3. Send phone OTP -> 200
+      const sendPhoneRes = await request(app)
+        .post('/api/v1/auth/send-phone-otp')
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(sendPhoneRes.status).toBe(200);
+      const phoneOtp = sendPhoneRes.body.data.debugOtp;
+      expect(phoneOtp).toBeDefined();
+
+      // 4. Verify phone OTP -> 200
+      const verifyPhoneRes = await request(app)
+        .post('/api/v1/auth/verify-phone-otp')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ otp: phoneOtp });
+
+      expect(verifyPhoneRes.status).toBe(200);
+      expect(verifyPhoneRes.body.data.user.isPhoneVerified).toBe(true);
+    });
+  });
 });
+

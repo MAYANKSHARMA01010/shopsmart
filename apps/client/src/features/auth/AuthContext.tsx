@@ -20,7 +20,12 @@ interface AuthContextType {
   updateProfile: (values: UpdateProfileFormValues) => Promise<void>;
   verifyEmail: () => Promise<void>;
   verifyPhone: () => Promise<void>;
+  sendEmailOtp: () => Promise<{ message: string; expiresInSeconds: number; debugOtp?: string }>;
+  verifyEmailOtp: (otp: string) => Promise<void>;
+  sendPhoneOtp: () => Promise<{ message: string; expiresInSeconds: number; debugOtp?: string }>;
+  verifyPhoneOtp: (otp: string) => Promise<void>;
 }
+
 
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -138,6 +143,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updateUser(res.data.user);
   }, [updateUser]);
 
+  const sendEmailOtp = useCallback(async () => {
+    const res = await authService.sendEmailOtp();
+    return res.data;
+  }, []);
+
+  const verifyEmailOtp = useCallback(async (otp: string) => {
+    const res = await authService.verifyEmailOtp(otp);
+    updateUser(res.data.user);
+  }, [updateUser]);
+
+  const sendPhoneOtp = useCallback(async () => {
+    const res = await authService.sendPhoneOtp();
+    return res.data;
+  }, []);
+
+  const verifyPhoneOtp = useCallback(async (otp: string) => {
+    const res = await authService.verifyPhoneOtp(otp);
+    updateUser(res.data.user);
+  }, [updateUser]);
+
   const value = React.useMemo<AuthContextType>(
     () => ({
       user,
@@ -149,9 +174,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       verifyEmail,
       verifyPhone,
+      sendEmailOtp,
+      verifyEmailOtp,
+      sendPhoneOtp,
+      verifyPhoneOtp,
     }),
-    [user, isLoading, login, register, logout, updateProfile, verifyEmail, verifyPhone]
+    [
+      user,
+      isLoading,
+      login,
+      register,
+      logout,
+      updateProfile,
+      verifyEmail,
+      verifyPhone,
+      sendEmailOtp,
+      verifyEmailOtp,
+      sendPhoneOtp,
+      verifyPhoneOtp,
+    ]
   );
+
 
 
   return (

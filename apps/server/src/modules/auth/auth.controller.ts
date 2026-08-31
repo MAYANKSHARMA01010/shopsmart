@@ -74,6 +74,48 @@ export const changePassword = catchAsync(async (req: Request, res: Response) => 
   });
 });
 
+export const sendEmailOtp = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const result = await authService.sendEmailOtp(userId);
+
+  res.status(200).json({
+    status: 'success',
+    data: result,
+  });
+});
+
+export const verifyEmailOtp = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { otp } = req.body;
+  const result = await authService.verifyEmailOtp(userId, otp);
+
+  res.status(200).json({
+    status: 'success',
+    data: result,
+  });
+});
+
+export const sendPhoneOtp = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const result = await authService.sendPhoneOtp(userId);
+
+  res.status(200).json({
+    status: 'success',
+    data: result,
+  });
+});
+
+export const verifyPhoneOtp = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { otp } = req.body;
+  const result = await authService.verifyPhoneOtp(userId, otp);
+
+  res.status(200).json({
+    status: 'success',
+    data: result,
+  });
+});
+
 export const verifyEmail = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const user = await authService.verifyEmail(userId);
@@ -95,4 +137,5 @@ export const verifyPhone = catchAsync(async (req: Request, res: Response) => {
     message: 'Phone number verified successfully',
   });
 });
+
 

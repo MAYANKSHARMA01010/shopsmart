@@ -82,6 +82,33 @@ class EmailService {
       `,
     });
   }
+
+  async sendOtpEmail(to: string, name: string, otp: string, purpose: string = 'Email Verification'): Promise<void> {
+    const customerName = name.trim() || 'User';
+    const subject = `Your ShopSmart Verification Code: ${otp}`;
+
+    await this.send({
+      to,
+      subject,
+      text: `Hi ${customerName},\n\nYour 6-digit verification code for ${purpose} is: ${otp}\n\nThis code will expire in 5 minutes.\n\nIf you did not request this, please ignore this email.\n\nShopSmart Security Team`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 8px;">
+          <h2 style="color: #111827; margin-top: 0;">ShopSmart Verification</h2>
+          <p style="color: #4b5563; font-size: 15px;">Hi <strong>${customerName}</strong>,</p>
+          <p style="color: #4b5563; font-size: 15px;">Your one-time verification code for <strong>${purpose}</strong> is:</p>
+          <div style="text-align: center; margin: 24px 0;">
+            <span style="display: inline-block; font-size: 32px; font-weight: 700; letter-spacing: 6px; padding: 12px 28px; background-color: #f3f4f6; border-radius: 8px; color: #1e3a8a; border: 1px dashed #3b82f6;">
+              ${otp}
+            </span>
+          </div>
+          <p style="color: #ef4444; font-size: 14px; font-weight: 600;">⚠️ This code expires in 5 minutes and can only be used once.</p>
+          <p style="color: #9ca3af; font-size: 13px; margin-top: 24px; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+            If you did not make this request, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+    });
+  }
 }
 
 export const emailService = new EmailService();

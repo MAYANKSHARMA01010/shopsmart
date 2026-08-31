@@ -59,16 +59,18 @@ function IconShieldCheck() {
 }
 
 export default function ProfilePage() {
-  const { user, updateProfile, verifyEmail, verifyPhone } = useAuth();
+  const { user, updateProfile, sendEmailOtp, verifyEmailOtp, sendPhoneOtp, verifyPhoneOtp } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Verification modal state
+  // OTP Verification Modal State
   const [verifyType, setVerifyType] = useState<"email" | "phone" | null>(null);
   const [otpCode, setOtpCode] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [resendTimer, setResendTimer] = useState(30);
+  const [debugOtp, setDebugOtp] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
@@ -127,24 +129,67 @@ export default function ProfilePage() {
     }
   };
 
-  const handleOpenVerifyModal = (type: "email" | "phone") => {
+  const handleOpenVerifyModal = async (type: "email" | "phone") => {
     if (type === "phone" && (!user.phone || user.phone.trim() === "")) {
       toast.error("Please add and save your phone number first.");
       return;
     }
-    setVerifyType(type);
-    toast.success(`Verification code sent to your ${type === "email" ? "email" : "phone number"}!`);
+    setIsSendingOtp(true);
+    setDebugOtp(null);
+    try {
+      if (type === "email") {
+        const res = await sendEmailOtp();
+        if (res.debugOtp) setDebugOtp(res.debugOtp);
+        toast.success("Verification code sent to your email! (Expires in 5 mins)");
+      } else {
+        const res = await sendPhoneOtp();
+        if (res.debugOtp) setDebugOtp(res.debugOtp);
+        toast.success("Verification code sent to your phone! (Expires in 5 mins)");
+      }
+      setVerifyType(type);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? err.message : "Failed to send verification code";
+      toast.error(msg);
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (resendTimer > 0 || isSendingOtp || !verifyType) return;
+    setIsSendingOtp(true);
+    try {
+      if (verifyType === "email") {
+        const res = await sendEmailOtp();
+        if (res.debugOtp) setDebugOtp(res.debugOtp);
+        toast.success("New verification code sent to your email!");
+      } else {
+        const res = await sendPhoneOtp();
+        if (res.debugOtp) setDebugOtp(res.debugOtp);
+        toast.success("New verification code sent to your phone!");
+      }
+      setResendTimer(30);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? err.message : "Failed to resend code";
+      toast.error(msg);
+    } finally {
+      setIsSendingOtp(false);
+    }
   };
 
   const handleConfirmVerification = async () => {
     if (!verifyType) return;
+    if (!otpCode || otpCode.trim().length !== 6) {
+      toast.error("Please enter the complete 6-digit verification code.");
+      return;
+    }
     setIsVerifying(true);
     try {
       if (verifyType === "email") {
-        await verifyEmail();
-        toast.success("Email verified successfully! 🎉");
+        await verifyEmailOtp(otpCode.trim());
+        toast.success("Email address verified successfully! 🎉");
       } else {
-        await verifyPhone();
+        await verifyPhoneOtp(otpCode.trim());
         toast.success("Phone number verified successfully! 🎉");
       }
       setVerifyType(null);
@@ -154,12 +199,6 @@ export default function ProfilePage() {
     } finally {
       setIsVerifying(false);
     }
-  };
-
-  const handleResendCode = () => {
-    if (resendTimer > 0) return;
-    setResendTimer(30);
-    toast.success(`New verification code sent to ${verifyType === "email" ? user.email : user.phone}!`);
   };
 
   const formatDate = (dateString: string) =>
@@ -305,8 +344,9 @@ export default function ProfilePage() {
                           lineHeight: "1.4",
                         }}
                         onClick={() => handleOpenVerifyModal("email")}
+                        disabled={isSendingOtp}
                       >
-                        Verify
+                        {isSendingOtp && verifyType === "email" ? "Sending…" : "Verify"}
                       </button>
                     </div>
                   )}
@@ -378,8 +418,9 @@ export default function ProfilePage() {
                             lineHeight: "1.4",
                           }}
                           onClick={() => handleOpenVerifyModal("phone")}
+                          disabled={isSendingOtp}
                         >
-                          Verify
+                          {isSendingOtp && verifyType === "phone" ? "Sending…" : "Verify"}
                         </button>
                       </div>
                     )
@@ -513,7 +554,7 @@ export default function ProfilePage() {
               <strong style={{ color: "var(--color-text-primary)" }}>
                 {verifyType === "email" ? user.email : user.phone}
               </strong>.
-              Enter it below to complete verification.
+              It is valid for <strong>5 minutes</strong>.
             </p>
 
             <div style={{ marginBottom: "var(--space-5)" }}>
@@ -521,7 +562,7 @@ export default function ProfilePage() {
                 htmlFor="verification-otp"
                 style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "var(--color-text-muted)", marginBottom: "var(--space-2)" }}
               >
-                Verification Code
+                Verification Code (6 Digits)
               </label>
               <input
                 id="verification-otp"
@@ -529,12 +570,12 @@ export default function ProfilePage() {
                 maxLength={6}
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ""))}
-                placeholder="123456"
+                placeholder="••••••"
                 autoFocus
                 style={{
                   width: "100%",
                   textAlign: "center",
-                  fontSize: "1.5rem",
+                  fontSize: "1.6rem",
                   letterSpacing: "0.4rem",
                   fontWeight: 700,
                   padding: "var(--space-3)",
@@ -546,11 +587,30 @@ export default function ProfilePage() {
                 }}
               />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "var(--space-2)", fontSize: "0.78rem" }}>
-                <span style={{ color: "var(--color-text-muted)" }}>Demo code: Any 6 digits</span>
+                {debugOtp ? (
+                  <button
+                    type="button"
+                    onClick={() => setOtpCode(debugOtp)}
+                    style={{
+                      background: "rgba(59, 130, 246, 0.1)",
+                      border: "1px dashed rgba(59, 130, 246, 0.4)",
+                      padding: "2px 8px",
+                      borderRadius: "var(--radius-sm)",
+                      color: "var(--color-primary)",
+                      cursor: "pointer",
+                      fontSize: "0.72rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Auto-fill demo code: {debugOtp}
+                  </button>
+                ) : (
+                  <span style={{ color: "#ef4444", fontWeight: 500 }}>Expires in 5 minutes</span>
+                )}
                 <button
                   type="button"
                   onClick={handleResendCode}
-                  disabled={resendTimer > 0}
+                  disabled={resendTimer > 0 || isSendingOtp}
                   style={{
                     background: "none",
                     border: "none",
@@ -581,7 +641,7 @@ export default function ProfilePage() {
                 className="btn btn-primary"
                 style={{ flex: 2 }}
                 onClick={handleConfirmVerification}
-                disabled={isVerifying}
+                disabled={isVerifying || otpCode.length !== 6}
               >
                 {isVerifying ? "Verifying…" : "Confirm Verification"}
               </button>
@@ -592,4 +652,3 @@ export default function ProfilePage() {
     </>
   );
 }
-

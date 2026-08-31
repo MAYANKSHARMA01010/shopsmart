@@ -54,6 +54,7 @@ model User {
   // Relations
   refreshTokens  RefreshToken[]
   passwordResets PasswordResetToken[]
+  otpTokens      OtpToken[]
   orders         Order[]
   cart           Cart?
   wishlist       Wishlist[]
@@ -68,6 +69,29 @@ model User {
   @@index([username])
   @@map("users")
 }
+
+enum OtpType {
+  EMAIL_VERIFICATION
+  PHONE_VERIFICATION
+}
+
+model OtpToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      OtpType
+  target    String   // email address or phone number
+  otpHash   String   // SHA-256 hash of the 6-digit OTP
+  attempts  Int      @default(0)
+  isUsed    Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId, type])
+  @@index([target, type])
+  @@map("otp_tokens")
+}
+
 
 model RefreshToken {
   id         String   @id @default(uuid())
