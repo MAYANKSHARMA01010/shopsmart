@@ -56,9 +56,10 @@ const envSchema = z.object({
   SMTP_FROM: z.string().default('ShopSmart <no-reply@shopsmart.local>'),
 
   // WhatsApp Provider (WAHA)
-  WAHA_API_URL: z.string().default('http://localhost:3000'),
+  WAHA_API_URL: z.string().default('http://localhost:3008'),
   WAHA_API_KEY: z.string().optional(),
   WAHA_SESSION: z.string().default('default'),
+
 
   // SMS Provider (httpSMS)
   HTTPSMS_API_URL: z.string().default('https://api.httpsms.com/v1'),
