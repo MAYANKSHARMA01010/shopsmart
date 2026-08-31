@@ -97,13 +97,16 @@ export const verifyEmailOtp = catchAsync(async (req: Request, res: Response) => 
 
 export const sendPhoneOtp = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user!.id;
-  const result = await authService.sendPhoneOtp(userId);
+  const channel = req.body?.channel === 'sms' ? 'sms' : 'whatsapp';
+  const result = await authService.sendPhoneOtp(userId, channel);
 
   res.status(200).json({
     status: 'success',
     data: result,
   });
 });
+
+
 
 export const verifyPhoneOtp = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user!.id;

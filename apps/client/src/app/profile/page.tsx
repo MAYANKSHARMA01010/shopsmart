@@ -66,11 +66,13 @@ export default function ProfilePage() {
 
   // OTP Verification Modal State
   const [verifyType, setVerifyType] = useState<"email" | "phone" | null>(null);
+  const [phoneChannel, setPhoneChannel] = useState<"whatsapp" | "sms">("whatsapp");
   const [otpCode, setOtpCode] = useState("");
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [resendTimer, setResendTimer] = useState(30);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
 
 
   const getRawPhoneDigits = (phoneStr?: string | null) => {
@@ -154,12 +156,31 @@ export default function ProfilePage() {
         await sendEmailOtp();
         toast.success("Verification code sent to your email! (Expires in 5 mins)");
       } else {
-        await sendPhoneOtp();
-        toast.success("Verification code sent to your phone! (Expires in 5 mins)");
+        setPhoneChannel("whatsapp");
+        await sendPhoneOtp("whatsapp");
+        toast.success("Verification code sent via WhatsApp! (Expires in 5 mins)");
       }
       setVerifyType(type);
     } catch (err: unknown) {
       const msg = err instanceof Error ? (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? err.message : "Failed to send verification code";
+      toast.error(msg);
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleChangePhoneChannel = async (newChannel: "whatsapp" | "sms") => {
+    if (newChannel === phoneChannel || isSendingOtp) return;
+    setIsSendingOtp(true);
+    setOtpCode("");
+    try {
+      await sendPhoneOtp(newChannel);
+      setPhoneChannel(newChannel);
+      const label = newChannel === "whatsapp" ? "WhatsApp" : "SMS";
+      toast.success(`Verification code sent via ${label}! (Expires in 5 mins)`);
+      setResendTimer(30);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? err.message : "Failed to switch channel";
       toast.error(msg);
     } finally {
       setIsSendingOtp(false);
@@ -174,8 +195,9 @@ export default function ProfilePage() {
         await sendEmailOtp();
         toast.success("New verification code sent to your email!");
       } else {
-        await sendPhoneOtp();
-        toast.success("New verification code sent to your phone!");
+        await sendPhoneOtp(phoneChannel);
+        const label = phoneChannel === "whatsapp" ? "WhatsApp" : "SMS";
+        toast.success(`New verification code sent via ${label}!`);
       }
       setResendTimer(30);
     } catch (err: unknown) {
@@ -185,6 +207,7 @@ export default function ProfilePage() {
       setIsSendingOtp(false);
     }
   };
+
 
 
   const handleConfirmVerification = async () => {
@@ -624,13 +647,72 @@ export default function ProfilePage() {
               </h3>
             </div>
 
+            {verifyType === "phone" && (
+              <div style={{ display: "flex", gap: "6px", marginBottom: "var(--space-4)", background: "var(--color-surface-elevated, #f3f4f6)", padding: "3px", borderRadius: "var(--radius-md)" }}>
+                <button
+                  type="button"
+                  onClick={() => handleChangePhoneChannel("whatsapp")}
+                  disabled={isSendingOtp}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "7px 12px",
+                    fontSize: "0.82rem",
+                    fontWeight: 600,
+                    borderRadius: "var(--radius-sm)",
+                    border: "none",
+                    background: phoneChannel === "whatsapp" ? "var(--color-surface, #ffffff)" : "transparent",
+                    color: phoneChannel === "whatsapp" ? "#16a34a" : "var(--color-text-muted)",
+                    boxShadow: phoneChannel === "whatsapp" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                    cursor: isSendingOtp ? "not-allowed" : "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "1rem" }}>💬</span> WhatsApp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleChangePhoneChannel("sms")}
+                  disabled={isSendingOtp}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "7px 12px",
+                    fontSize: "0.82rem",
+                    fontWeight: 600,
+                    borderRadius: "var(--radius-sm)",
+                    border: "none",
+                    background: phoneChannel === "sms" ? "var(--color-surface, #ffffff)" : "transparent",
+                    color: phoneChannel === "sms" ? "var(--color-primary, #0f766e)" : "var(--color-text-muted)",
+                    boxShadow: phoneChannel === "sms" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                    cursor: isSendingOtp ? "not-allowed" : "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "1rem" }}>📱</span> SMS Text
+                </button>
+              </div>
+            )}
+
             <p style={{ fontSize: "0.88rem", color: "var(--color-text-muted)", marginBottom: "var(--space-4)", lineHeight: 1.5 }}>
-              We sent a 6-digit verification code to{" "}
-              <strong style={{ color: "var(--color-text-primary)" }}>
-                {verifyType === "email" ? user.email : user.phone}
-              </strong>.
-              It is valid for <strong>5 minutes</strong>.
+              {verifyType === "email" ? (
+                <>We sent a 6-digit verification code to <strong style={{ color: "var(--color-text-primary)" }}>{user.email}</strong>.</>
+              ) : (
+                phoneChannel === "whatsapp" ? (
+                  <>We sent a 6-digit verification code to your WhatsApp at <strong style={{ color: "var(--color-text-primary)" }}>{user.phone}</strong>.</>
+                ) : (
+                  <>We sent a 6-digit verification code via SMS to <strong style={{ color: "var(--color-text-primary)" }}>{user.phone}</strong>.</>
+                )
+              )}
+              {" "}It is valid for <strong>5 minutes</strong>.
             </p>
+
 
             <div style={{ marginBottom: "var(--space-5)" }}>
               <label

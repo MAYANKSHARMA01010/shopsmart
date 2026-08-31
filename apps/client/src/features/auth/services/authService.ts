@@ -59,12 +59,13 @@ export const authService = {
   verifyEmailOtp: (otp: string): Promise<UserResponse> =>
     apiClient.post("/auth/verify-email-otp", { otp }),
 
-  sendPhoneOtp: (): Promise<{ status: string; data: { message: string; expiresInSeconds: number } }> =>
-    apiClient.post("/auth/send-phone-otp"),
+  sendPhoneOtp: (channel: "whatsapp" | "sms" = "whatsapp"): Promise<{ status: string; data: { message: string; channelUsed: "whatsapp" | "sms"; expiresInSeconds: number } }> =>
+    apiClient.post("/auth/send-phone-otp", { channel }),
 
   verifyPhoneOtp: (otp: string): Promise<UserResponse> =>
     apiClient.post("/auth/verify-phone-otp", { otp }),
 };
+
 
 
 

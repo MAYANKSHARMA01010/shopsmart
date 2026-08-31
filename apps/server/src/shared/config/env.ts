@@ -54,10 +54,21 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().default('ShopSmart <no-reply@shopsmart.local>'),
+
+  // WhatsApp Provider (WAHA)
+  WAHA_API_URL: z.string().default('http://localhost:3000'),
+  WAHA_API_KEY: z.string().optional(),
+  WAHA_SESSION: z.string().default('default'),
+
+  // SMS Provider (httpSMS)
+  HTTPSMS_API_URL: z.string().default('https://api.httpsms.com/v1'),
+  HTTPSMS_API_KEY: z.string().optional(),
+  HTTPSMS_FROM_PHONE: z.string().optional(),
   
   // Logging
   LOG_LEVEL: z.string().default('info'),
   LOG_FORMAT: z.string().default('text'),
+
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'test' && !data.TEST_DATABASE_URL) {
     ctx.addIssue({

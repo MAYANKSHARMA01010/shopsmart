@@ -22,9 +22,10 @@ interface AuthContextType {
   verifyPhone: () => Promise<void>;
   sendEmailOtp: () => Promise<{ message: string; expiresInSeconds: number }>;
   verifyEmailOtp: (otp: string) => Promise<void>;
-  sendPhoneOtp: () => Promise<{ message: string; expiresInSeconds: number }>;
+  sendPhoneOtp: (channel?: "whatsapp" | "sms") => Promise<{ message: string; channelUsed: "whatsapp" | "sms"; expiresInSeconds: number }>;
   verifyPhoneOtp: (otp: string) => Promise<void>;
 }
+
 
 
 
@@ -155,10 +156,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updateUser(res.data.user);
   }, [updateUser]);
 
-  const sendPhoneOtp = useCallback(async () => {
-    const res = await authService.sendPhoneOtp();
+  const sendPhoneOtp = useCallback(async (channel: "whatsapp" | "sms" = "whatsapp") => {
+    const res = await authService.sendPhoneOtp(channel);
     return res.data;
   }, []);
+
 
   const verifyPhoneOtp = useCallback(async (otp: string) => {
     const res = await authService.verifyPhoneOtp(otp);

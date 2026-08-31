@@ -247,7 +247,7 @@ describe('ShopSmart — Auth Integration Tests', () => {
       randomSpy.mockRestore();
     });
 
-    it('should reject phone OTP when phone is not set, and verify successfully when set', async () => {
+    it('should reject phone OTP when phone is not set, and verify successfully when set via WhatsApp and SMS channels', async () => {
       const randomSpy = vi.spyOn(crypto, 'randomInt').mockReturnValue(987654 as never);
 
       // 0. Reset phone to empty
@@ -269,15 +269,27 @@ describe('ShopSmart — Auth Integration Tests', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ phone: '+919876543210' });
 
-      // 3. Send phone OTP -> 200
-      const sendPhoneRes = await request(app)
+      // 3. Send phone OTP via WhatsApp (Default) -> 200
+      const sendWhatsappRes = await request(app)
         .post('/api/v1/auth/send-phone-otp')
-        .set('Authorization', `Bearer ${accessToken}`);
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({});
 
-      expect(sendPhoneRes.status).toBe(200);
-      expect(sendPhoneRes.body.data.debugOtp).toBeUndefined();
+      expect(sendWhatsappRes.status).toBe(200);
+      expect(sendWhatsappRes.body.data.channelUsed).toBe('whatsapp');
+      expect(sendWhatsappRes.body.data.message).toContain('WhatsApp');
 
-      // 4. Verify phone OTP -> 200
+      // 4. Switch channel: Send phone OTP via SMS -> 200
+      const sendSmsRes = await request(app)
+        .post('/api/v1/auth/send-phone-otp')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ channel: 'sms' });
+
+      expect(sendSmsRes.status).toBe(200);
+      expect(sendSmsRes.body.data.channelUsed).toBe('sms');
+      expect(sendSmsRes.body.data.message).toContain('SMS');
+
+      // 5. Verify phone OTP -> 200
       const verifyPhoneRes = await request(app)
         .post('/api/v1/auth/verify-phone-otp')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -290,5 +302,6 @@ describe('ShopSmart — Auth Integration Tests', () => {
     });
   });
 });
+
 
 

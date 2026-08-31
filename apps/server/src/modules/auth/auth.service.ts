@@ -7,7 +7,9 @@ import { JwtPayload } from './auth.types';
 import { Role } from '@prisma/client';
 import { authRepository } from './auth.repository';
 import { emailService } from '../email/email.service';
+import { phoneOtpDispatcher, PhoneOtpChannel } from '../sms/phoneOtp.dispatcher';
 import logger from '../../shared/utils/logger';
+
 
 const ACCESS_SECRET = env.JWT_ACCESS_SECRET;
 
@@ -281,7 +283,7 @@ class AuthService {
     };
   }
 
-  async sendPhoneOtp(userId: string) {
+  async sendPhoneOtp(userId: string, channel: PhoneOtpChannel = 'whatsapp') {
     const user = await authRepository.findUserById(userId);
     if (!user) {
       throw new AppError('User not found', 404);
@@ -295,7 +297,7 @@ class AuthService {
     const otpHash = hashToken(rawOtp);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // Store hashed OTP in database
+    // Store hashed OTP in database (revokes any previous pending OTP for this target)
     await authRepository.createOtpToken({
       userId,
       type: 'PHONE_VERIFICATION',
@@ -304,17 +306,24 @@ class AuthService {
       expiresAt,
     });
 
+    // Dispatch strictly via selected single channel (default: WhatsApp)
+    const { channelUsed } = await phoneOtpDispatcher.dispatchOtp(user.phone, rawOtp, channel);
+
     logger.info('otp.phone.generated', {
       userId,
       phone: user.phone,
+      channel: channelUsed,
       expiresAt,
     });
 
+    const channelLabel = channelUsed === 'whatsapp' ? 'WhatsApp' : 'SMS';
     return {
-      message: 'Verification code sent to your phone number. Valid for 5 minutes.',
+      message: `Verification code sent via ${channelLabel}. Valid for 5 minutes.`,
+      channelUsed,
       expiresInSeconds: 300,
     };
   }
+
 
 
   async verifyPhoneOtp(userId: string, inputOtp: string) {
