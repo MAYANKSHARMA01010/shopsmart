@@ -116,7 +116,7 @@ export function Logo({
 
   if (href) {
     return (
-      <Link href={href} aria-label="ShopSmart Home" style={{ textDecoration: "none" }}>
+      <Link href={href} aria-label="ShopSmart Home" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
         {logoMark}
       </Link>
     );
@@ -124,3 +124,4 @@ export function Logo({
 
   return logoMark;
 }
+

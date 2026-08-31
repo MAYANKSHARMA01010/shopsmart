@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useWishlistStore } from "../../features/wishlist/store/wishlistStore";
-import { useCartStore } from "../../features/cart/store/cartStore";
-import { ProductImage } from "../../features/products/components/ProductImage";
-import { formatPrice, type Product } from "../../features/products/types/productSchema";
+import { Skeleton, ProductGridSkeleton } from "@/components/ui/Skeleton";
+import { useWishlistStore } from "@/features/wishlist";
+import { useCartStore } from "@/features/cart";
+import { ProductImage } from "@/features/products";
+import { formatPrice, type Product } from "@/features/products";
 import toast from "react-hot-toast";
+
 
 function IconFolder({ size = 20 }: { size?: number }) {
   return (
@@ -148,11 +150,24 @@ export default function WishlistPage() {
 
   if (!mounted) {
     return (
-      <div className="container" style={{ padding: "4rem 0", textAlign: "center", color: "var(--color-text-muted)" }}>
-        Loading Wishlist Folders…
+      <div className="container" style={{ paddingTop: "var(--space-8)", paddingBottom: "var(--space-16)" }} aria-busy="true">
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-6)" }}>
+          <div>
+            <Skeleton width={220} height={32} style={{ marginBottom: "var(--space-2)" }} />
+            <Skeleton width={320} height={16} />
+          </div>
+          <Skeleton width={130} height={38} borderRadius="var(--radius-md)" />
+        </div>
+        <div style={{ display: "flex", gap: "8px", marginBottom: "var(--space-6)" }}>
+          <Skeleton width={90} height={34} borderRadius="var(--radius-full)" />
+          <Skeleton width={110} height={34} borderRadius="var(--radius-full)" />
+          <Skeleton width={100} height={34} borderRadius="var(--radius-full)" />
+        </div>
+        <ProductGridSkeleton count={4} />
       </div>
     );
   }
+
 
   return (
     <div className="container" style={{ paddingTop: "var(--space-8)", paddingBottom: "var(--space-16)" }}>

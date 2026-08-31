@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { productService } from "../../../features/products/services/productService";
-import { categoryService } from "../../../features/categories/services/categoryService";
-import type { Product, ProductData } from "../../../features/products/types/productSchema";
-import type { CategoryNode } from "../../../features/categories/types/categorySchema";
-import { formatPrice } from "../../../features/products/types/productSchema";
+import { DashboardTableSkeleton } from "@/components/ui/Skeleton";
+import { productService, formatPrice, type Product, type ProductData } from "@/features/products";
+import { categoryService, type CategoryNode } from "@/features/categories";
+
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -109,8 +108,16 @@ export default function AdminProductsPage() {
   };
 
   if (isLoading) {
-    return <div>Loading products...</div>;
+    return (
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+          <h1 style={{ margin: 0 }}>Inventory Management</h1>
+        </div>
+        <DashboardTableSkeleton rows={6} cols={5} />
+      </div>
+    );
   }
+
 
   // Helper to flatten categories for the select dropdown
   const flattenCategories = (nodes: CategoryNode[], prefix = ""): { id: string; name: string }[] => {

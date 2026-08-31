@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useFavoritesStore } from "../../features/favorites/store/favoritesStore";
-import { useCartStore } from "../../features/cart/store/cartStore";
-import { ProductImage } from "../../features/products/components/ProductImage";
-import { formatPrice, type Product } from "../../features/products/types/productSchema";
+import { Skeleton, ProductGridSkeleton } from "@/components/ui/Skeleton";
+import { useFavoritesStore } from "@/features/favorites";
+import { useCartStore } from "@/features/cart";
+import { ProductImage } from "@/features/products";
+import { formatPrice, type Product } from "@/features/products";
+
 
 function IconHeartFilled() {
   return (
@@ -71,13 +73,22 @@ export default function FavoritesPage() {
     }
   };
 
-  if (!mounted) {
+  if (!mounted || isLoading) {
     return (
-      <div className="container" style={{ padding: "4rem 0", textAlign: "center", color: "var(--color-text-muted)" }}>
-        Loading Favorites…
+      <div className="container" style={{ paddingTop: "var(--space-8)", paddingBottom: "var(--space-16)" }} aria-busy="true">
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-6)" }}>
+          <div>
+            <Skeleton width={120} height={16} style={{ marginBottom: "var(--space-2)" }} />
+            <Skeleton width={200} height={32} style={{ marginBottom: "var(--space-2)" }} />
+            <Skeleton width={300} height={14} />
+          </div>
+          <Skeleton width={80} height={20} />
+        </div>
+        <ProductGridSkeleton count={4} />
       </div>
     );
   }
+
 
   return (
     <div className="container" style={{ paddingTop: "var(--space-8)", paddingBottom: "var(--space-16)" }}>

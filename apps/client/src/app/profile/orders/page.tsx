@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { orderService } from "../../../features/orders/services/orderService";
-import type { Order } from "../../../features/orders/types/orderSchema";
-import { formatPrice } from "../../../features/products/types/productSchema";
-import { ProductImage } from "../../../features/products/components/ProductImage";
+import { OrderListSkeleton } from "@/components/ui/Skeleton";
+import { orderService } from "@/features/orders";
+import type { Order } from "@/features/orders";
+import { formatPrice } from "@/features/products";
+import { ProductImage } from "@/features/products";
+
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -43,11 +45,12 @@ export default function OrdersPage() {
 
   if (isLoading) {
     return (
-      <div style={{ padding: "3rem", textAlign: "center", color: "var(--color-text-muted)" }}>
-        Loading orders…
+      <div className="profile-section-card" style={{ padding: "var(--space-6)" }}>
+        <OrderListSkeleton count={3} />
       </div>
     );
   }
+
 
   if (error) {
     return (

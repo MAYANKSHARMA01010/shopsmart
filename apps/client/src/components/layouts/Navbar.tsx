@@ -623,41 +623,33 @@ export function Navbar() {
           {/* ── Three-group flex row: Left | Center | Right ── */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
 
-            {/* LEFT: Hamburger + Logo + Location */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
-              <button
-                type="button"
-                id="hamburger-menu-btn"
-                onClick={() => setMenuOpen(true)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "var(--color-text-primary)",
-                  padding: "6px",
-                  borderRadius: "var(--radius-md)",
-                  transition: "background 0.15s",
-                }}
-                aria-label="Open navigation menu"
-                aria-expanded={menuOpen}
-                aria-controls="site-nav-drawer"
-              >
-                <IconMenu />
-              </button>
-
+            {/* LEFT: Logo + Location */}
+            <div style={{ display: "flex", alignItems: "center", gap: "16px", flexShrink: 0 }}>
               <Logo size="md" href="/" />
 
               {/* Location pill — hidden on mobile, shown ≥1024px via CSS */}
-              <div className="nav-location-pill" style={{ display: "none", alignItems: "center", gap: "6px", cursor: "pointer", paddingLeft: "4px", borderLeft: "1px solid var(--color-border)" }}>
-                <div style={{ color: "var(--color-primary)" }}><IconLocation /></div>
+              <div
+                className="nav-location-pill"
+                style={{
+                  display: "none",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                  paddingLeft: "12px",
+                  borderLeft: "1px solid var(--color-border)",
+                  height: "28px",
+                }}
+              >
+                <div style={{ color: "var(--color-primary)", display: "flex", alignItems: "center" }}>
+                  <IconLocation />
+                </div>
                 <div style={{ lineHeight: 1.2 }}>
                   <div style={{ fontSize: "0.68rem", color: "var(--color-text-muted)" }}>Deliver to</div>
                   <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--color-text-primary)" }}>India (400001)</div>
                 </div>
               </div>
             </div>
+
 
             {/* CENTER: Search Bar — grows to fill space */}
             <form
@@ -804,7 +796,34 @@ export function Navbar() {
         {/* ── Sub-Navigation Strip ── */}
         <div style={{ background: "var(--color-surface-sunken)", borderTop: "1px solid var(--color-border)", borderBottom: "1px solid var(--color-border-subtle)", overflowX: "auto" }}>
           <div className="container" style={{ padding: "4px var(--space-4)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px", whiteSpace: "nowrap", fontSize: "0.825rem", fontWeight: 600 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "18px", whiteSpace: "nowrap", fontSize: "0.825rem", fontWeight: 600 }}>
+              <button
+                type="button"
+                id="hamburger-menu-btn"
+                onClick={() => setMenuOpen(true)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--color-text-primary)",
+                  fontWeight: 700,
+                  fontSize: "0.825rem",
+                  padding: "4px 8px",
+                  marginLeft: "-8px",
+                  borderRadius: "var(--radius-sm)",
+                  transition: "background 0.15s",
+                }}
+                aria-label="Open all departments menu"
+                aria-expanded={menuOpen}
+                aria-controls="site-nav-drawer"
+              >
+                <IconMenu />
+                <span>All</span>
+              </button>
+
               {DEPARTMENTS.slice(0, 5).map((dept) => (
                 <Link key={dept.href} href={dept.href} style={{ color: "var(--color-text-secondary)", textDecoration: "none" }}>
                   {dept.label}
@@ -822,6 +841,7 @@ export function Navbar() {
             </div>
           </div>
         </div>
+
       </header>
 
       {/* ── Hamburger Drawer (portal-like, outside sticky header) ── */}

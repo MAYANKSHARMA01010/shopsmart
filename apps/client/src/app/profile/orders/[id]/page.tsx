@@ -2,10 +2,12 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { orderService } from "../../../../features/orders/services/orderService";
-import type { Order } from "../../../../features/orders/types/orderSchema";
-import { formatPrice } from "../../../../features/products/types/productSchema";
-import { ProductImage } from "../../../../features/products/components/ProductImage";
+import { OrderDetailSkeleton } from "@/components/ui/Skeleton";
+import { orderService } from "@/features/orders";
+import type { Order } from "@/features/orders";
+import { formatPrice } from "@/features/products";
+import { ProductImage } from "@/features/products";
+
 
 interface OrderDetailsPageProps {
   params: Promise<{ id: string }>;
@@ -47,12 +49,9 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
   }, [id]);
 
   if (isLoading) {
-    return (
-      <div style={{ padding: "4rem 0", textAlign: "center", color: "var(--color-text-muted)" }}>
-        Loading Order Details…
-      </div>
-    );
+    return <OrderDetailSkeleton />;
   }
+
 
   if (error || !order) {
     return (

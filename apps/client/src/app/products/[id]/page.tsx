@@ -4,7 +4,9 @@ import { use, useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
+import { ProductDetailSkeleton } from "@/components/ui/Skeleton";
 import { useProduct, productService, formatPrice, type Product } from "@/features/products";
+
 import { useCart } from "@/features/cart";
 import { FavoriteButton } from "@/features/favorites";
 import { WishlistButton } from "@/features/wishlist";
@@ -136,12 +138,9 @@ export default function ProductDetailsPage({ params }: ProductPageProps) {
   }, [product?.images]);
 
   if (isLoading) {
-    return (
-      <div className="container" style={{ padding: "5rem 0", textAlign: "center", color: "var(--color-text-muted)" }}>
-        Loading Product Details…
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
+
 
   if (error || !product) {
     return (

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { userService } from "../../../features/users/services/userService";
-import type { User } from "../../../features/auth/types/authSchema";
+import { DashboardTableSkeleton } from "@/components/ui/Skeleton";
+import { userService } from "@/features/users";
+import type { User } from "@/features/auth";
+
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -35,8 +37,16 @@ export default function AdminUsersPage() {
   };
 
   if (isLoading) {
-    return <div>Loading users...</div>;
+    return (
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+          <h1 style={{ margin: 0 }}>User Management</h1>
+        </div>
+        <DashboardTableSkeleton rows={5} cols={4} />
+      </div>
+    );
   }
+
 
   return (
     <div>

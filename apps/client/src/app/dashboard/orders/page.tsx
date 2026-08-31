@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { orderService } from "../../../features/orders/services/orderService";
-import type { Order } from "../../../features/orders/types/orderSchema";
-import { formatPrice } from "../../../features/products/types/productSchema";
+import { DashboardTableSkeleton } from "@/components/ui/Skeleton";
+import { orderService, type Order } from "@/features/orders";
+import { formatPrice } from "@/features/products";
+
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -49,8 +50,14 @@ export default function AdminOrdersPage() {
   };
 
   if (isLoading) {
-    return <div>Loading orders...</div>;
+    return (
+      <div>
+        <h1 style={{ marginBottom: "2rem", margin: 0 }}>Order Management</h1>
+        <DashboardTableSkeleton rows={5} cols={6} />
+      </div>
+    );
   }
+
 
   return (
     <div>

@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { analyticsService, type AnalyticsOverview } from "../../features/analytics/services/analyticsService";
-import { formatPrice } from "../../features/products/types/productSchema";
+import { Skeleton, DashboardStatsSkeleton } from "@/components/ui/Skeleton";
+import { analyticsService, type AnalyticsOverview } from "@/features/analytics";
+import { formatPrice } from "@/features/products";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,
 } from "recharts";
+
 
 function IconRevenue() {
   return (
@@ -52,19 +54,26 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div>
+      <div aria-busy="true">
         <div className="dashboard-page-header">
-          <h1 className="dashboard-page-title">Dashboard Overview</h1>
-          <p className="dashboard-page-subtitle">Loading analytics data…</p>
+          <Skeleton width={240} height={28} style={{ marginBottom: "var(--space-2)" }} />
+          <Skeleton width={320} height={16} />
         </div>
-        <div className="dashboard-kpi-grid">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="kpi-card" style={{ height: 100, background: "var(--color-surface-sunken)", animation: "pulse-dot 1.5s ease infinite" }} />
-          ))}
+        <DashboardStatsSkeleton />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-5)" }}>
+          <div className="profile-section-card" style={{ padding: "var(--space-6)" }}>
+            <Skeleton width={180} height={20} style={{ marginBottom: "var(--space-4)" }} />
+            <Skeleton height={240} borderRadius="var(--radius-md)" />
+          </div>
+          <div className="profile-section-card" style={{ padding: "var(--space-6)" }}>
+            <Skeleton width={180} height={20} style={{ marginBottom: "var(--space-4)" }} />
+            <Skeleton height={240} borderRadius="var(--radius-md)" />
+          </div>
         </div>
       </div>
     );
   }
+
 
   if (error || !data) {
     return (

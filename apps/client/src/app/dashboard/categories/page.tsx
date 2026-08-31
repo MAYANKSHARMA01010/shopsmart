@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { categoryService } from "../../../features/categories/services/categoryService";
-import type { CategoryNode, CategoryCreateInput } from "../../../features/categories/types/categorySchema";
+import { DashboardTableSkeleton } from "@/components/ui/Skeleton";
+import { categoryService, type CategoryNode, type CategoryCreateInput } from "@/features/categories";
+
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<CategoryNode[]>([]);
@@ -95,8 +96,16 @@ export default function AdminCategoriesPage() {
   };
 
   if (isLoading) {
-    return <div>Loading categories...</div>;
+    return (
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+          <h1 style={{ margin: 0 }}>Category Management</h1>
+        </div>
+        <DashboardTableSkeleton rows={5} cols={3} />
+      </div>
+    );
   }
+
 
   // Flatten categories to avoid mapping the tree manually in select dropdown
   const flattenCategories = (nodes: CategoryNode[], prefix = ""): { id: string; name: string }[] => {

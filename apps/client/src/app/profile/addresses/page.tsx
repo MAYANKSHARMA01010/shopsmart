@@ -1,8 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+
+import { AddressListSkeleton } from "@/components/ui/Skeleton";
 import { addressService, type Address, type AddressFormData } from "@/features/auth/services/addressService";
 import toast from "react-hot-toast";
+
 
 function IconHome() {
   return (
@@ -163,11 +166,12 @@ export default function AddressesPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: "3rem", textAlign: "center", color: "var(--color-text-muted)" }}>
-        Loading saved addresses…
+      <div className="profile-section-card" style={{ padding: "var(--space-6)" }}>
+        <AddressListSkeleton count={2} />
       </div>
     );
   }
+
 
   return (
     <div className="profile-section-card" style={{ padding: "var(--space-6)" }}>

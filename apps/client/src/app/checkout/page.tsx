@@ -2,10 +2,11 @@
 
 import React, { useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { CartPageSkeleton } from "@/components/ui/Skeleton";
 import { AddressSelector, CouponInput, OrderSummary, PaymentButton, useCheckoutStore } from "@/features/checkout";
 import { useCartStore } from "@/features/cart";
+import { useAuthStore } from "@/features/auth";
 
-import { useAuthStore } from "../../features/auth/store/authStore";
 import { useRouter } from "next/navigation";
 
 function IconCheck() {
@@ -45,12 +46,9 @@ export const CheckoutPage: React.FC = () => {
 
 
   if (!mounted) {
-    return (
-      <div className="container" style={{ padding: "4rem 0", textAlign: "center", color: "var(--color-text-muted)" }}>
-        Loading Checkout…
-      </div>
-    );
+    return <CartPageSkeleton />;
   }
+
 
   if (!cart.items || cart.items.length === 0) {
     return (

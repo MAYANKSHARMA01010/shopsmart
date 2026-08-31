@@ -8,10 +8,13 @@ import type { CategoryNode } from "@/features/categories/types/categorySchema";
 import { ProductImage } from "@/features/products/components/ProductImage";
 import { formatPrice, type Product } from "@/features/products/types/productSchema";
 import { useCart } from "@/features/cart";
+import { useAuth } from "@/features/auth";
 import { useUI } from "@/context/UIContext";
 import { WishlistButton } from "@/features/wishlist/components/WishlistButton";
-
+import { HomeHeroSkeleton, HomeQuadSkeleton, HomeRailSkeleton } from "@/components/ui/Skeleton";
 import toast from "react-hot-toast";
+
+
 
 
 // Vector SVG Icons
@@ -313,8 +316,11 @@ function AmazonProductCard({ product }: { product: Product }) {
 }
 
 export default function HomePage() {
+  const { user } = useAuth();
   const [, setCategories] = useState<CategoryNode[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+
+  const [isLoading, setIsLoading] = useState(true);
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
   const [timeLeft, setTimeLeft] = useState({ hours: 5, minutes: 42, seconds: 8 });
 
@@ -339,8 +345,10 @@ export default function HomePage() {
         const list = Array.isArray(res) ? res : res.data ?? [];
         setProducts(list);
       })
-      .catch(() => setProducts([]));
+      .catch(() => setProducts([]))
+      .finally(() => setIsLoading(false));
   }, []);
+
 
   // Auto-slide hero
   useEffect(() => {
@@ -440,8 +448,17 @@ export default function HomePage() {
         <span>💳 Instant 10% Off with Razorpay UPI & Cards &nbsp;|&nbsp; 🚚 FREE Express Delivery on Orders over ₹500</span>
       </div>
 
-      {/* 3. Amazon-Style Sliding Hero Banner (Optimized with priority loading for LCP) */}
-      <div style={{ position: "relative", height: "360px", overflow: "hidden", background: "#0B1120" }}>
+      {isLoading && products.length === 0 ? (
+        <>
+          <HomeHeroSkeleton />
+          <HomeQuadSkeleton />
+          <HomeRailSkeleton />
+        </>
+      ) : (
+        <>
+          {/* 3. Amazon-Style Sliding Hero Banner (Optimized with priority loading for LCP) */}
+          <div style={{ position: "relative", height: "360px", overflow: "hidden", background: "#0B1120" }}>
+
         {/* Background image & gradient */}
         <div style={{ position: "absolute", inset: 0 }}>
           <ProductImage src={slide.image} alt={slide.title} fill priority sizes="100vw" />
@@ -830,27 +847,111 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* 9. Amazon / Flipkart Sign-in & Orders Banner */}
-        <section style={{ background: "linear-gradient(135deg, var(--color-primary-surface) 0%, var(--color-surface) 100%)", border: "1px solid var(--color-primary-border)", borderRadius: "var(--radius-xl)", padding: "var(--space-8)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
-          <div>
-            <h3 style={{ fontSize: "1.35rem", fontWeight: 700, margin: "0 0 4px 0", color: "var(--color-text-primary)" }}>
-              Sign in for your best experience
-            </h3>
-            <p style={{ margin: 0, color: "var(--color-text-secondary)", fontSize: "0.925rem" }}>
-              Track orders in real time, organize wishlist folders, and enjoy fast Razorpay checkout.
-            </p>
-          </div>
+        {/* 9. Dynamic Auth / Orders Banner */}
+        <section
+          style={{
+            background: "linear-gradient(135deg, var(--color-primary-surface) 0%, var(--color-surface) 100%)",
+            border: "1px solid var(--color-primary-border)",
+            borderRadius: "var(--radius-xl)",
+            padding: "var(--space-8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "16px",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+          }}
+        >
+          {user ? (
+            <>
+              <div>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    background: "var(--color-primary)",
+                    color: "#FFFFFF",
+                    padding: "3px 12px",
+                    borderRadius: "999px",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.06em",
+                    marginBottom: "8px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  <span>✓</span> Logged In
+                </div>
+                <h3 style={{ fontSize: "1.35rem", fontWeight: 700, margin: "0 0 4px 0", color: "var(--color-text-primary)" }}>
+                  Welcome back, {user.name || user.email.split("@")[0]}!
+                </h3>
+                <p style={{ margin: 0, color: "var(--color-text-secondary)", fontSize: "0.925rem" }}>
+                  Track your active shipments, manage saved addresses, or explore recommendations tailored for you.
+                </p>
+              </div>
 
-          <div style={{ display: "flex", gap: "10px" }}>
-            <Link href="/login" className="btn btn-primary" style={{ padding: "9px 22px", borderRadius: "var(--radius-full)" }}>
-              Sign In
-            </Link>
-            <Link href="/register" className="btn btn-secondary" style={{ padding: "9px 18px", borderRadius: "var(--radius-full)" }}>
-              Create Account
-            </Link>
-          </div>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <Link
+                  href="/profile/orders"
+                  className="btn btn-primary"
+                  style={{ padding: "9px 22px", borderRadius: "var(--radius-full)" }}
+                >
+                  My Orders →
+                </Link>
+                <Link
+                  href="/profile"
+                  className="btn btn-secondary"
+                  style={{ padding: "9px 18px", borderRadius: "var(--radius-full)" }}
+                >
+                  Account Overview
+                </Link>
+                {(user.role === "ADMIN" || user.role === "SUPER_ADMIN") && (
+                  <Link
+                    href="/dashboard"
+                    className="btn btn-secondary"
+                    style={{ padding: "9px 18px", borderRadius: "var(--radius-full)" }}
+                  >
+                    Admin Dashboard
+                  </Link>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <h3 style={{ fontSize: "1.35rem", fontWeight: 700, margin: "0 0 4px 0", color: "var(--color-text-primary)" }}>
+                  Sign in for your best experience
+                </h3>
+                <p style={{ margin: 0, color: "var(--color-text-secondary)", fontSize: "0.925rem" }}>
+                  Track orders in real time, organize wishlist folders, and enjoy fast Razorpay checkout.
+                </p>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Link
+                  href="/login"
+                  className="btn btn-primary"
+                  style={{ padding: "9px 22px", borderRadius: "var(--radius-full)" }}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/register"
+                  className="btn btn-secondary"
+                  style={{ padding: "9px 18px", borderRadius: "var(--radius-full)" }}
+                >
+                  Create Account
+                </Link>
+              </div>
+            </>
+          )}
         </section>
       </div>
+        </>
+      )}
     </div>
   );
 }
+
+

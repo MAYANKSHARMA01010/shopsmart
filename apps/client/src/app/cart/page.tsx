@@ -5,8 +5,10 @@ import { useEffect, useState, useMemo, useCallback, useSyncExternalStore } from 
 
 import Link from "next/link";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
+import { CartPageSkeleton } from "@/components/ui/Skeleton";
 import { useCart } from "@/features/cart";
 import { formatPrice } from "@/features/products";
+
 import { useRouter } from "next/navigation";
 
 
@@ -72,13 +74,10 @@ export default function CartPage() {
   const discount = useMemo(() => (promoApplied ? Math.round(subtotal * 0.1) : 0), [promoApplied, subtotal]);
   const total = useMemo(() => Math.max(0, subtotal - discount + shipping), [subtotal, discount, shipping]);
 
-  if (!mounted) {
-    return (
-      <div className="container" style={{ padding: "4rem 0", textAlign: "center", color: "var(--color-text-muted)" }}>
-        Loading Cart…
-      </div>
-    );
+  if (!mounted || isLoading) {
+    return <CartPageSkeleton />;
   }
+
 
 
   return (

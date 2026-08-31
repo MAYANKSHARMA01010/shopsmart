@@ -1,8 +1,11 @@
 "use client";
 
 import React, { Suspense, useMemo } from "react";
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Skeleton } from "@/components/ui/Skeleton";
+
 
 function IconCheck() {
   return (
@@ -178,8 +181,20 @@ function SuccessContent() {
 
 export default function SuccessPage() {
   return (
-    <Suspense fallback={<div className="container" style={{ padding: "4rem 0", textAlign: "center" }}>Loading Order Details…</div>}>
+    <Suspense
+      fallback={
+        <div className="container" style={{ padding: "var(--space-12) var(--space-4)", display: "flex", justifyContent: "center" }} aria-busy="true">
+          <div className="profile-section-card" style={{ maxWidth: "600px", width: "100%", padding: "var(--space-8)", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-4)" }}>
+            <Skeleton width={72} height={72} borderRadius="var(--radius-full)" />
+            <Skeleton width={220} height={28} />
+            <Skeleton width={320} height={16} />
+            <Skeleton width="100%" height={100} borderRadius="var(--radius-md)" />
+          </div>
+        </div>
+      }
+    >
       <SuccessContent />
     </Suspense>
   );
 }
+
