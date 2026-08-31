@@ -56,15 +56,16 @@ const envSchema = z.object({
   SMTP_FROM: z.string().default('ShopSmart <no-reply@shopsmart.local>'),
 
   // WhatsApp Provider (WAHA)
-  WAHA_API_URL: z.string().default('http://localhost:3008'),
+  WAHA_API_URL: z.string().default('http://localhost:6969'),
   WAHA_API_KEY: z.string().optional(),
   WAHA_SESSION: z.string().default('default'),
 
+  // Open-Source SMS Gateway (Docker / Android SMS Gateway)
+  SMS_GATEWAY_URL: z.string().default('http://localhost:8080'),
+  SMS_GATEWAY_USER: z.string().optional(),
+  SMS_GATEWAY_PASSWORD: z.string().optional(),
+  SMS_GATEWAY_API_KEY: z.string().optional(),
 
-  // SMS Provider (httpSMS)
-  HTTPSMS_API_URL: z.string().default('https://api.httpsms.com/v1'),
-  HTTPSMS_API_KEY: z.string().optional(),
-  HTTPSMS_FROM_PHONE: z.string().optional(),
   
   // Logging
   LOG_LEVEL: z.string().default('info'),
