@@ -61,8 +61,9 @@ const envSchema = z.object({
   WAHA_SESSION: z.string().default('default'),
 
   // Open-Source SMS Gateway (Docker / Android SMS Gateway)
-  SMS_GATEWAY_URL: z.string().default('http://localhost:8080'),
+  SMS_GATEWAY_URL: z.string().default('http://localhost:9696'),
   SMS_GATEWAY_USER: z.string().optional(),
+
   SMS_GATEWAY_PASSWORD: z.string().optional(),
   SMS_GATEWAY_API_KEY: z.string().optional(),
 
