@@ -39,7 +39,7 @@ export const AddressSelector: React.FC = () => {
   const [formData, setFormData] = useState<AddressFormData>({
     name: user?.name || "",
     email: user?.email || "",
-    phone: user?.phone || "+91 98765 43210",
+    phone: user?.phone || "",
     line1: "",
     line2: "",
     city: "Bengaluru",
@@ -48,6 +48,7 @@ export const AddressSelector: React.FC = () => {
     postalCode: "560038",
     isDefault: true,
   });
+
 
   const loadAddresses = useCallback(async () => {
     if (!token) return;
@@ -244,16 +245,44 @@ export const AddressSelector: React.FC = () => {
               <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: "4px" }}>
                 Mobile Number *
               </label>
-              <input
-                type="tel"
-                required
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="form-input"
-                placeholder="e.g. +91 98765 43210"
-                style={{ width: "100%", padding: "8px 12px", fontSize: "0.85rem" }}
-              />
+              <div style={{ display: "flex", width: "100%" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "0 8px",
+                    background: "var(--color-surface-elevated, #f3f4f6)",
+                    border: "1px solid var(--color-border)",
+                    borderRight: "none",
+                    borderTopLeftRadius: "var(--radius-md)",
+                    borderBottomLeftRadius: "var(--radius-md)",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    color: "var(--color-text-primary)",
+                    userSelect: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <span role="img" aria-label="India">🇮🇳</span> +91
+                </div>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  required
+                  value={formData.phone.replace(/\D/g, "").slice(-10)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setFormData({ ...formData, phone: digits ? `+91${digits}` : "" });
+                  }}
+                  className="form-input"
+                  placeholder="98765 43210"
+                  style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, flex: 1, padding: "8px 12px", fontSize: "0.85rem" }}
+                />
+              </div>
             </div>
+
           </div>
 
           <div>

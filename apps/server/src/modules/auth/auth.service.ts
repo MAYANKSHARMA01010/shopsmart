@@ -54,14 +54,22 @@ class AuthService {
     const saltRounds = parseInt(env.BCRYPT_SALT_ROUNDS, 10);
     const passwordHash = await bcrypt.hash(data.password, saltRounds);
 
+    // Normalize phone number to +91XXXXXXXXXX
+    let normalizedPhone: string | null = null;
+    if (data.phone && data.phone.trim() !== '') {
+      const rawDigits = data.phone.replace(/\D/g, '').slice(-10);
+      normalizedPhone = `+91${rawDigits}`;
+    }
+
     // Create user and cart in transaction
     const user = await authRepository.createUserWithCart({
       name: data.name,
       email: data.email,
       username,
       password: passwordHash,
-      phone: data.phone,
+      phone: normalizedPhone,
     });
+
 
     const tokens = this.generateTokenPair(user);
     await this.saveRefreshToken(user.id, tokens.refreshToken, deviceInfo);
@@ -136,6 +144,11 @@ class AuthService {
   }
 
   async updateProfile(id: string, data: { name?: string; username?: string; phone?: string | null; avatar?: string | null; gender?: string | null }) {
+    const user = await authRepository.findUserById(id);
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
     // If username is changing, check uniqueness
     if (data.username) {
       const existing = await authRepository.findUserByUsernameExcept(data.username, id);
@@ -144,16 +157,33 @@ class AuthService {
       }
     }
 
+    let normalizedPhone = data.phone;
+    let isPhoneVerified = user.isPhoneVerified;
+
+    if (data.phone !== undefined) {
+      if (data.phone && data.phone.trim() !== '') {
+        const rawDigits = data.phone.replace(/\D/g, '').slice(-10);
+        normalizedPhone = `+91${rawDigits}`;
+        if (normalizedPhone !== user.phone) {
+          isPhoneVerified = false;
+        }
+      } else {
+        normalizedPhone = null;
+        isPhoneVerified = false;
+      }
+    }
+
     const updatedUser = await authRepository.updateUser(id, {
       ...(data.name !== undefined && { name: data.name }),
       ...(data.username !== undefined && { username: data.username }),
-      ...(data.phone !== undefined && { phone: data.phone }),
+      ...(data.phone !== undefined && { phone: normalizedPhone, isPhoneVerified }),
       ...(data.avatar !== undefined && { avatar: data.avatar }),
       ...(data.gender !== undefined && { gender: data.gender }),
     });
 
     return this.sanitizeUser(updatedUser);
   }
+
 
   async changePassword(userId: string, data: Record<string, string>) {
     const user = await authRepository.findUserById(userId);

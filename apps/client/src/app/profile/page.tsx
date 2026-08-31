@@ -73,9 +73,15 @@ export default function ProfilePage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
 
+  const getRawPhoneDigits = (phoneStr?: string | null) => {
+    if (!phoneStr) return "";
+    return phoneStr.replace(/\D/g, "").slice(-10);
+  };
+
   const {
     register,
     handleSubmit,
+    setValue,
     reset,
     formState: { errors },
   } = useForm<UpdateProfileFormValues>({
@@ -90,7 +96,7 @@ export default function ProfilePage() {
       reset({
         name: user.name,
         username: user.username || "",
-        phone: user.phone || "",
+        phone: getRawPhoneDigits(user.phone),
         gender: user.gender || "",
       });
     }
@@ -118,7 +124,12 @@ export default function ProfilePage() {
   const onSubmit = async (data: UpdateProfileFormValues) => {
     setIsSubmitting(true);
     try {
-      await updateProfile(data);
+      const digits = data.phone ? data.phone.replace(/\D/g, "").slice(-10) : "";
+      const payload = {
+        ...data,
+        phone: digits ? `+91${digits}` : null,
+      };
+      await updateProfile(payload);
       toast.success("Profile updated successfully!");
       setIsEditing(false);
     } catch (err: unknown) {
@@ -128,6 +139,7 @@ export default function ProfilePage() {
       setIsSubmitting(false);
     }
   };
+
 
   const handleOpenVerifyModal = async (type: "email" | "phone") => {
     if (type === "phone" && (!user.phone || user.phone.trim() === "")) {
@@ -431,17 +443,104 @@ export default function ProfilePage() {
                     )
                   )}
                 </div>
-                <input
-                  id="prof-phone"
-                  type="text"
-                  className={`form-input${errors.phone ? " input-error" : ""}`}
-                  {...register("phone")}
-                  readOnly={!isEditing}
-                  disabled={!isEditing}
-                  style={{ opacity: !isEditing ? 0.8 : 1, width: "100%" }}
-                  placeholder={!isEditing && !user.phone ? "Not set" : "Enter phone number"}
-                />
+                {isEditing ? (
+                  <div style={{ display: "flex", width: "100%" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "0 12px",
+                        background: "var(--color-surface-elevated, #f3f4f6)",
+                        border: "1px solid var(--color-border)",
+                        borderRight: "none",
+                        borderTopLeftRadius: "var(--radius-md)",
+                        borderBottomLeftRadius: "var(--radius-md)",
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                        color: "var(--color-text-primary)",
+                        userSelect: "none",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <span role="img" aria-label="India" style={{ fontSize: "1.1rem" }}>🇮🇳</span>
+                      <span>+91</span>
+                    </div>
+                    <input
+                      id="prof-phone"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      className={`form-input${errors.phone ? " input-error" : ""}`}
+                      {...register("phone", {
+                        onChange: (e) => {
+                          const only10 = e.target.value.replace(/\D/g, "").slice(0, 10);
+                          setValue("phone", only10, { shouldValidate: true });
+                        },
+                      })}
+                      style={{
+                        borderTopLeftRadius: 0,
+                        borderBottomLeftRadius: 0,
+                        flex: 1,
+                      }}
+                      placeholder="98765 43210"
+                    />
+                  </div>
+                ) : (
+                  user.phone ? (
+                    <div style={{ display: "flex", width: "100%" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "0 12px",
+                          background: "var(--color-surface-elevated, #f3f4f6)",
+                          border: "1px solid var(--color-border)",
+                          borderRight: "none",
+                          borderTopLeftRadius: "var(--radius-md)",
+                          borderBottomLeftRadius: "var(--radius-md)",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                          color: "var(--color-text-primary)",
+                          opacity: 0.85,
+                          userSelect: "none",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <span role="img" aria-label="India" style={{ fontSize: "1.1rem" }}>🇮🇳</span>
+                        <span>+91</span>
+                      </div>
+                      <input
+                        id="prof-phone"
+                        type="text"
+                        className="form-input"
+                        value={getRawPhoneDigits(user.phone)}
+                        readOnly
+                        disabled
+                        style={{
+                          borderTopLeftRadius: 0,
+                          borderBottomLeftRadius: 0,
+                          opacity: 0.85,
+                          flex: 1,
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <input
+                      id="prof-phone"
+                      type="text"
+                      className="form-input"
+                      value=""
+                      readOnly
+                      disabled
+                      placeholder="Not set"
+                      style={{ opacity: 0.8, width: "100%" }}
+                    />
+                  )
+                )}
                 {errors.phone && <span className="error-message">{errors.phone.message}</span>}
+
               </div>
 
 

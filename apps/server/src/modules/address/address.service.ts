@@ -47,6 +47,11 @@ export const addressService = {
       data.isDefault = true;
     }
 
+    if (data.phone) {
+      const rawDigits = data.phone.replace(/\D/g, '').slice(-10);
+      data.phone = `+91${rawDigits}`;
+    }
+
     return prisma.address.create({
       data: {
         ...data,
@@ -73,6 +78,11 @@ export const addressService = {
       throw new AppError('Address not found or unauthorized', 404);
     }
 
+    if (data.phone) {
+      const rawDigits = data.phone.replace(/\D/g, '').slice(-10);
+      data.phone = `+91${rawDigits}`;
+    }
+
     if (data.isDefault) {
       await prisma.address.updateMany({
         where: { userId, isDefault: true },
@@ -85,6 +95,7 @@ export const addressService = {
       data,
     });
   },
+
 
   async deleteAddress(addressId: string, userId: string) {
     // Verify ownership

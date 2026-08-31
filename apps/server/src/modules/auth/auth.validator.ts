@@ -16,7 +16,18 @@ export const registerSchema = z.object({
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number')
     .regex(/[^a-zA-Z0-9]/, 'Password must contain at least one special character'),
-  phone: z.string().regex(/^\+?[0-9]{10,15}$/, 'Invalid phone number format').optional().nullable(),
+  phone: z
+    .string()
+    .refine((val) => {
+      if (!val || val.trim() === '') return true;
+      const digits = val.replace(/\D/g, '');
+      return (digits.length === 10 && /^[6-9]\d{9}$/.test(digits)) ||
+             (digits.length === 12 && /^91[6-9]\d{9}$/.test(digits));
+    }, {
+      message: 'Phone number must be a valid 10-digit Indian mobile number (e.g. 9876543210)',
+    })
+    .optional()
+    .nullable(),
 });
 
 export const loginSchema = z.object({
@@ -36,10 +47,22 @@ export const updateProfileSchema = z.object({
     .max(30)
     .regex(/^[a-z0-9_.-]+$/i, 'Username can only contain letters, numbers, underscores, dots, and hyphens')
     .optional(),
-  phone: z.string().optional().nullable(),
+  phone: z
+    .string()
+    .refine((val) => {
+      if (!val || val.trim() === '') return true;
+      const digits = val.replace(/\D/g, '');
+      return (digits.length === 10 && /^[6-9]\d{9}$/.test(digits)) ||
+             (digits.length === 12 && /^91[6-9]\d{9}$/.test(digits));
+    }, {
+      message: 'Phone number must be a valid 10-digit Indian mobile number (e.g. 9876543210)',
+    })
+    .optional()
+    .nullable(),
   avatar: z.string().url('Invalid avatar URL').optional().nullable(),
   gender: z.string().optional().nullable(),
 });
+
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),

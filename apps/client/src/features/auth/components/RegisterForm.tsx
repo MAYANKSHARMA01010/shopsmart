@@ -204,18 +204,23 @@ export function RegisterForm() {
             PHONE NUMBER <span className="form-label-opt">(Optional)</span>
           </label>
           <div className="form-phone-row">
-            <div className="form-phone-code">+91</div>
+            <div className="form-phone-code" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <span role="img" aria-label="India">🇮🇳</span> +91
+            </div>
             <input
               id="reg-phone"
               type="tel"
+              inputMode="numeric"
+              maxLength={10}
               className="form-input form-input-phone"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
               placeholder="98765 43210"
               autoComplete="tel"
             />
           </div>
         </div>
+
 
         <button
           id="register-submit"

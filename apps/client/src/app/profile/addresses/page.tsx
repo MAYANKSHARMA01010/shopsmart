@@ -356,15 +356,46 @@ export default function AddressesPage() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="addr-phone">Phone</label>
-                  <input
-                    id="addr-phone"
-                    required
-                    className="form-input"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
+                  <label className="form-label" htmlFor="addr-phone">Phone Number</label>
+                  <div style={{ display: "flex", width: "100%" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        padding: "0 10px",
+                        background: "var(--color-surface-elevated, #f3f4f6)",
+                        border: "1px solid var(--color-border)",
+                        borderRight: "none",
+                        borderTopLeftRadius: "var(--radius-md)",
+                        borderBottomLeftRadius: "var(--radius-md)",
+                        fontSize: "0.82rem",
+                        fontWeight: 600,
+                        color: "var(--color-text-primary)",
+                        userSelect: "none",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <span role="img" aria-label="India">🇮🇳</span> +91
+                    </div>
+                    <input
+                      id="addr-phone"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      required
+                      className="form-input"
+                      style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, flex: 1 }}
+                      placeholder="98765 43210"
+                      value={formData.phone.replace(/\D/g, "").slice(-10)}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        setFormData({ ...formData, phone: digits ? `+91${digits}` : "" });
+                      }}
+                    />
+                  </div>
                 </div>
+
               </div>
 
               <div className="form-group">

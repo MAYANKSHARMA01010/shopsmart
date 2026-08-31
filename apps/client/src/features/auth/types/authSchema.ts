@@ -23,7 +23,14 @@ export const registerSchema = z.object({
     .regex(/[^a-zA-Z0-9]/, "Must contain at least one special character"),
   phone: z
     .string()
-    .regex(/^\+?[0-9]{10,15}$/, "Invalid phone number format")
+    .refine((val) => {
+      if (!val || val.trim() === "") return true;
+      const digits = val.replace(/\D/g, "");
+      return (digits.length === 10 && /^[6-9]\d{9}$/.test(digits)) ||
+             (digits.length === 12 && /^91[6-9]\d{9}$/.test(digits));
+    }, {
+      message: "Please enter a valid 10-digit Indian mobile number (e.g. 9876543210)",
+    })
     .optional()
     .or(z.literal("")),
 });
@@ -36,10 +43,22 @@ export const updateProfileSchema = z.object({
     .max(30)
     .regex(/^[a-z0-9_.-]+$/i, "Username can only contain letters, numbers, underscores, dots, and hyphens")
     .optional(),
-  phone: z.string().optional().nullable(),
+  phone: z
+    .string()
+    .refine((val) => {
+      if (!val || val.trim() === "") return true;
+      const digits = val.replace(/\D/g, "");
+      return (digits.length === 10 && /^[6-9]\d{9}$/.test(digits)) ||
+             (digits.length === 12 && /^91[6-9]\d{9}$/.test(digits));
+    }, {
+      message: "Please enter a valid 10-digit Indian mobile number (e.g. 9876543210)",
+    })
+    .optional()
+    .nullable(),
   avatar: z.string().url("Invalid avatar URL").optional().nullable(),
   gender: z.string().optional().nullable(),
 });
+
 
 export type LoginFormValues = z.infer<typeof loginSchema>;
 export type RegisterFormValues = z.infer<typeof registerSchema>;
