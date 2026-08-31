@@ -80,44 +80,68 @@ kill_port_if_busy 5001 "Backend API"
 kill_port_if_busy 3000 "Frontend Client"
 
 # ------------------------------------------------------------------------------
-# 2. Ensure Redis Service (Port 6379)
+# 2. Ensure Redis Service (Port 6379) - Protocol Verified
 # ------------------------------------------------------------------------------
 echo -e "${BLUE}🔍 Checking Redis service (port 6379)...${NC}"
-is_redis_running() {
+
+is_redis_responsive() {
+  # 1. Try redis-cli if available
   if command -v redis-cli &>/dev/null; then
-    redis-cli ping 2>/dev/null | grep -q "PONG" && return 0
+    local pong=$(redis-cli ping 2>/dev/null || true)
+    if [[ "$pong" =~ PONG ]]; then
+      return 0
+    fi
   fi
+  
+  # 2. Raw TCP Redis RESP protocol check: send PING\r\n, expect +PONG
   if command -v nc &>/dev/null; then
-    nc -z 127.0.0.1 6379 2>/dev/null && return 0
+    local resp=$(printf "PING\r\n" | nc -w 1 127.0.0.1 6379 2>/dev/null || true)
+    if [[ "$resp" =~ PONG ]]; then
+      return 0
+    fi
   fi
+
   return 1
 }
 
-if is_redis_running; then
-  echo -e "${GREEN}✓ Redis is active and running on port 6379.${NC}"
+if is_redis_responsive; then
+  echo -e "${GREEN}✓ Redis is active and responding (PONG) on port 6379.${NC}"
 else
-  echo -e "${YELLOW}⚡ Redis is not running. Starting Redis...${NC}"
+  # If port 6379 is occupied by an unresponsive or non-Redis process, release it!
+  local busy_pids_6379=$(lsof -ti :6379 2>/dev/null || true)
+  if [ -n "$busy_pids_6379" ]; then
+    echo -e "${YELLOW}⚠️  Port 6379 is occupied by a non-Redis or unresponsive process. Releasing port 6379...${NC}"
+    kill_port_if_busy 6379 "Non-Redis 6379"
+    sleep 1
+  fi
+
+  echo -e "${YELLOW}⚡ Starting fresh Redis instance...${NC}"
   if command -v redis-server &>/dev/null; then
     redis-server --daemonize yes 2>/dev/null || redis-server &
     sleep 1
   elif is_docker_available; then
     echo -e "${BLUE}🐳 Starting Redis via Docker container (shopsmart-redis)...${NC}"
     if docker ps -a --format '{{.Names}}' | grep -q "^shopsmart-redis$"; then
-      docker start shopsmart-redis >/dev/null 2>&1 || true
+      # If existing container is stopped or misconfigured, restart it
+      docker start shopsmart-redis >/dev/null 2>&1 || {
+        docker rm -f shopsmart-redis >/dev/null 2>&1 || true
+        docker run -d --name shopsmart-redis -p 6379:6379 --restart unless-stopped redis:alpine >/dev/null 2>&1 || true
+      }
     else
       docker run -d --name shopsmart-redis -p 6379:6379 --restart unless-stopped redis:alpine >/dev/null 2>&1 || true
     fi
     sleep 1
   else
-    echo -e "${YELLOW}⚠️  Could not start Redis automatically. Backend will continue with DB fallback.${NC}"
+    echo -e "${YELLOW}⚠️  Could not start Redis automatically (neither redis-server nor docker found). Backend will continue with DB fallback.${NC}"
   fi
 
-  if is_redis_running; then
-    echo -e "${GREEN}✓ Redis started successfully on port 6379.${NC}"
+  if is_redis_responsive; then
+    echo -e "${GREEN}✓ Redis started and responding (PONG) on port 6379.${NC}"
   else
-    echo -e "${YELLOW}⚠️  Redis is not responding on 6379. Backend will use DB fallback mode.${NC}"
+    echo -e "${YELLOW}⚠️  Redis is not responding on 6379. Backend will use fallback DB mode.${NC}"
   fi
 fi
+
 
 # ------------------------------------------------------------------------------
 # 3. Ensure WAHA (WhatsApp HTTP API) Docker Container (Port 6969 -> 3000)
