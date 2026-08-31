@@ -18,7 +18,10 @@ interface AuthContextType {
   register: (values: RegisterFormValues) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (values: UpdateProfileFormValues) => Promise<void>;
+  verifyEmail: () => Promise<void>;
+  verifyPhone: () => Promise<void>;
 }
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -125,6 +128,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updateUser(res.data.user);
   }, [updateUser]);
 
+  const verifyEmail = useCallback(async () => {
+    const res = await authService.verifyEmail();
+    updateUser(res.data.user);
+  }, [updateUser]);
+
+  const verifyPhone = useCallback(async () => {
+    const res = await authService.verifyPhone();
+    updateUser(res.data.user);
+  }, [updateUser]);
+
   const value = React.useMemo<AuthContextType>(
     () => ({
       user,
@@ -134,9 +147,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register,
       logout,
       updateProfile,
+      verifyEmail,
+      verifyPhone,
     }),
-    [user, isLoading, login, register, logout, updateProfile]
+    [user, isLoading, login, register, logout, updateProfile, verifyEmail, verifyPhone]
   );
+
 
   return (
     <AuthContext.Provider value={value}>

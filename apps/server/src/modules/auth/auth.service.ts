@@ -169,7 +169,29 @@ class AuthService {
     await authRepository.updateUser(userId, { password: passwordHash });
   }
 
+  async verifyEmail(userId: string) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+    const updated = await authRepository.updateUser(userId, { isEmailVerified: true });
+    return this.sanitizeUser(updated);
+  }
+
+  async verifyPhone(userId: string) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+    if (!user.phone || user.phone.trim() === '') {
+      throw new AppError('Please set a phone number in your profile before verifying.', 400);
+    }
+    const updated = await authRepository.updateUser(userId, { isPhoneVerified: true });
+    return this.sanitizeUser(updated);
+  }
+
   // ─── Helpers ─────────────────────────────────────────────────────────────
+
 
   private generateTokenPair(user: { id: string; email: string; role: Role }) {
     const payload: JwtPayload = {

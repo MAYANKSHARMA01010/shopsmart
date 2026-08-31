@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "../../features/auth/AuthContext";
@@ -13,6 +13,14 @@ function IconEdit() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function IconCheck() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }
@@ -41,11 +49,27 @@ function IconStar() {
   );
 }
 
+function IconShieldCheck() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <polyline points="9 12 11 14 15 10" />
+    </svg>
+  );
+}
+
 export default function ProfilePage() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, verifyEmail, verifyPhone } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Verification modal state
+  const [verifyType, setVerifyType] = useState<"email" | "phone" | null>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [resendTimer, setResendTimer] = useState(30);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     register,
@@ -70,6 +94,23 @@ export default function ProfilePage() {
     }
   }, [user, reset]);
 
+  // Resend countdown timer
+  useEffect(() => {
+    if (verifyType) {
+      setResendTimer(30);
+      setOtpCode("");
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setResendTimer((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [verifyType]);
+
   if (!mounted || !user) return null;
 
   const onSubmit = async (data: UpdateProfileFormValues) => {
@@ -86,8 +127,45 @@ export default function ProfilePage() {
     }
   };
 
+  const handleOpenVerifyModal = (type: "email" | "phone") => {
+    if (type === "phone" && (!user.phone || user.phone.trim() === "")) {
+      toast.error("Please add and save your phone number first.");
+      return;
+    }
+    setVerifyType(type);
+    toast.success(`Verification code sent to your ${type === "email" ? "email" : "phone number"}!`);
+  };
+
+  const handleConfirmVerification = async () => {
+    if (!verifyType) return;
+    setIsVerifying(true);
+    try {
+      if (verifyType === "email") {
+        await verifyEmail();
+        toast.success("Email verified successfully! 🎉");
+      } else {
+        await verifyPhone();
+        toast.success("Phone number verified successfully! 🎉");
+      }
+      setVerifyType(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? err.message : "Verification failed";
+      toast.error(msg);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResendCode = () => {
+    if (resendTimer > 0) return;
+    setResendTimer(30);
+    toast.success(`New verification code sent to ${verifyType === "email" ? user.email : user.phone}!`);
+  };
+
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
+
+  const hasPhoneSet = Boolean(user.phone && user.phone.trim().length > 0);
 
   return (
     <>
@@ -178,10 +256,59 @@ export default function ProfilePage() {
                     disabled
                     style={{ opacity: 0.8, flex: 1 }}
                   />
-                  {!user.isEmailVerified && (
-                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--color-warning)", background: "var(--color-warning-surface)", border: "1px solid var(--color-warning-border)", padding: "2px 8px", borderRadius: "var(--radius-full)", whiteSpace: "nowrap" }}>
-                      Not Verified
+                  {user.isEmailVerified ? (
+                    <span
+                      id="badge-email-verified"
+                      style={{
+                        fontSize: "0.74rem",
+                        fontWeight: 700,
+                        color: "var(--color-success, #10b981)",
+                        background: "rgba(16, 185, 129, 0.1)",
+                        border: "1px solid rgba(16, 185, 129, 0.3)",
+                        padding: "4px 10px",
+                        borderRadius: "var(--radius-full)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <IconCheck /> Verified
                     </span>
+                  ) : (
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                      <span
+                        id="badge-email-unverified"
+                        style={{
+                          fontSize: "0.74rem",
+                          fontWeight: 700,
+                          color: "#d97706",
+                          background: "rgba(245, 158, 11, 0.1)",
+                          border: "1px solid rgba(245, 158, 11, 0.3)",
+                          padding: "4px 10px",
+                          borderRadius: "var(--radius-full)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Not Verified
+                      </span>
+                      <button
+                        type="button"
+                        id="btn-verify-email"
+                        className="btn btn-primary"
+                        style={{
+                          padding: "4px 12px",
+                          fontSize: "0.76rem",
+                          fontWeight: 600,
+                          borderRadius: "var(--radius-md)",
+                          whiteSpace: "nowrap",
+                          lineHeight: "1.4",
+                        }}
+                        onClick={() => handleOpenVerifyModal("email")}
+                      >
+                        Verify
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -189,16 +316,75 @@ export default function ProfilePage() {
               {/* Phone */}
               <div className="form-group">
                 <label className="form-label" htmlFor="prof-phone">Phone Number</label>
-                <input
-                  id="prof-phone"
-                  type="text"
-                  className={`form-input${errors.phone ? " input-error" : ""}`}
-                  {...register("phone")}
-                  readOnly={!isEditing}
-                  disabled={!isEditing}
-                  style={!isEditing ? { opacity: 0.8 } : {}}
-                  placeholder={!isEditing && !user.phone ? "Not set" : ""}
-                />
+                <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
+                  <input
+                    id="prof-phone"
+                    type="text"
+                    className={`form-input${errors.phone ? " input-error" : ""}`}
+                    {...register("phone")}
+                    readOnly={!isEditing}
+                    disabled={!isEditing}
+                    style={{ opacity: !isEditing ? 0.8 : 1, flex: 1 }}
+                    placeholder={!isEditing && !user.phone ? "Not set" : "Enter phone number"}
+                  />
+                  {/* Show verify button ONLY when phone number is set */}
+                  {hasPhoneSet && (
+                    user.isPhoneVerified ? (
+                      <span
+                        id="badge-phone-verified"
+                        style={{
+                          fontSize: "0.74rem",
+                          fontWeight: 700,
+                          color: "var(--color-success, #10b981)",
+                          background: "rgba(16, 185, 129, 0.1)",
+                          border: "1px solid rgba(16, 185, 129, 0.3)",
+                          padding: "4px 10px",
+                          borderRadius: "var(--radius-full)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <IconCheck /> Verified
+                      </span>
+                    ) : (
+                      <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                        <span
+                          id="badge-phone-unverified"
+                          style={{
+                            fontSize: "0.74rem",
+                            fontWeight: 700,
+                            color: "#d97706",
+                            background: "rgba(245, 158, 11, 0.1)",
+                            border: "1px solid rgba(245, 158, 11, 0.3)",
+                            padding: "4px 10px",
+                            borderRadius: "var(--radius-full)",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          Not Verified
+                        </span>
+                        <button
+                          type="button"
+                          id="btn-verify-phone"
+                          className="btn btn-primary"
+                          style={{
+                            padding: "4px 12px",
+                            fontSize: "0.76rem",
+                            fontWeight: 600,
+                            borderRadius: "var(--radius-md)",
+                            whiteSpace: "nowrap",
+                            lineHeight: "1.4",
+                          }}
+                          onClick={() => handleOpenVerifyModal("phone")}
+                        >
+                          Verify
+                        </button>
+                      </div>
+                    )
+                  )}
+                </div>
                 {errors.phone && <span className="error-message">{errors.phone.message}</span>}
               </div>
 
@@ -282,6 +468,128 @@ export default function ProfilePage() {
           </div>
         </Link>
       </div>
+
+      {/* Verification Modal */}
+      {verifyType && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "var(--space-4)",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setVerifyType(null);
+          }}
+        >
+          <div
+            className="profile-section-card"
+            style={{
+              width: "100%",
+              maxWidth: "440px",
+              padding: "var(--space-6)",
+              borderRadius: "var(--radius-lg)",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+              background: "var(--color-surface, #ffffff)",
+              border: "1px solid var(--color-border)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-4)" }}>
+              <div style={{ color: "var(--color-primary)", display: "flex" }}>
+                <IconShieldCheck />
+              </div>
+              <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, color: "var(--color-text-primary)" }}>
+                {verifyType === "email" ? "Verify Email Address" : "Verify Phone Number"}
+              </h3>
+            </div>
+
+            <p style={{ fontSize: "0.88rem", color: "var(--color-text-muted)", marginBottom: "var(--space-4)", lineHeight: 1.5 }}>
+              We sent a 6-digit verification code to{" "}
+              <strong style={{ color: "var(--color-text-primary)" }}>
+                {verifyType === "email" ? user.email : user.phone}
+              </strong>.
+              Enter it below to complete verification.
+            </p>
+
+            <div style={{ marginBottom: "var(--space-5)" }}>
+              <label
+                htmlFor="verification-otp"
+                style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "var(--color-text-muted)", marginBottom: "var(--space-2)" }}
+              >
+                Verification Code
+              </label>
+              <input
+                id="verification-otp"
+                type="text"
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ""))}
+                placeholder="123456"
+                autoFocus
+                style={{
+                  width: "100%",
+                  textAlign: "center",
+                  fontSize: "1.5rem",
+                  letterSpacing: "0.4rem",
+                  fontWeight: 700,
+                  padding: "var(--space-3)",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-background)",
+                  color: "var(--color-text-primary)",
+                  outline: "none",
+                }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "var(--space-2)", fontSize: "0.78rem" }}>
+                <span style={{ color: "var(--color-text-muted)" }}>Demo code: Any 6 digits</span>
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={resendTimer > 0}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    color: resendTimer > 0 ? "var(--color-text-muted)" : "var(--color-primary)",
+                    cursor: resendTimer > 0 ? "default" : "pointer",
+                    fontWeight: 600,
+                    textDecoration: resendTimer === 0 ? "underline" : "none",
+                  }}
+                >
+                  {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend Code"}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "var(--space-3)" }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setVerifyType(null)}
+                disabled={isVerifying}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ flex: 2 }}
+                onClick={handleConfirmVerification}
+                disabled={isVerifying}
+              >
+                {isVerifying ? "Verifying…" : "Confirm Verification"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
+

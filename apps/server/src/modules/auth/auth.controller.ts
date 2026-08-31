@@ -73,3 +73,26 @@ export const changePassword = catchAsync(async (req: Request, res: Response) => 
     message: 'Password changed successfully',
   });
 });
+
+export const verifyEmail = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const user = await authService.verifyEmail(userId);
+
+  res.status(200).json({
+    status: 'success',
+    data: { user },
+    message: 'Email verified successfully',
+  });
+});
+
+export const verifyPhone = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const user = await authService.verifyPhone(userId);
+
+  res.status(200).json({
+    status: 'success',
+    data: { user },
+    message: 'Phone number verified successfully',
+  });
+});
+

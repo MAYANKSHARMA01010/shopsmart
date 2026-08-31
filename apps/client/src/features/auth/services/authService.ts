@@ -46,4 +46,11 @@ export const authService = {
 
   changePassword: (data: any): Promise<any> =>
     apiClient.post("/auth/change-password", data),
+
+  verifyEmail: (): Promise<UserResponse> =>
+    apiClient.post("/auth/verify-email"),
+
+  verifyPhone: (): Promise<UserResponse> =>
+    apiClient.post("/auth/verify-phone"),
 };
+

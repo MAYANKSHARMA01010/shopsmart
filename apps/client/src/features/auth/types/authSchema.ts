@@ -55,6 +55,8 @@ export interface User {
   gender: string | null;
   role: "SUPER_ADMIN" | "ADMIN" | "VENDOR" | "CUSTOMER";
   isEmailVerified: boolean;
+  isPhoneVerified?: boolean;
   createdAt: string;
   updatedAt: string;
 }
+
