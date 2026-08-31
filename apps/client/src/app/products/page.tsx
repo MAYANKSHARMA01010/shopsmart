@@ -1,21 +1,26 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useAuth } from "@/features/auth/AuthContext";
-import { useProducts } from "../../features/products/hooks/useProducts";
-import type { ProductData } from "../../features/products/types/productSchema";
-import { formatPrice } from "../../features/products/types/productSchema";
-import { ProductCard } from "@/features/products/components/ProductCard";
-import { ProductForm } from "@/features/products/components/ProductForm";
-import { CategoryFilter } from "@/features/categories/components/CategoryFilter";
-import { useQueryParams } from "@/hooks/useQueryParams";
+import { useState, useCallback, useMemo, lazy, Suspense } from "react";
+import { useAuth } from "@/features/auth";
+import {
+  useProducts,
+  useProductsFilter,
+  ProductCard,
+  formatPrice,
+  type ProductData,
+} from "@/features/products";
+import { CategoryFilter } from "@/features/categories";
+import { ProductGridSkeleton } from "@/components/ui/Skeleton";
 
 
+// Lazy-load the heavy ProductForm so customer users never download admin form code
+const LazyProductForm = lazy(() =>
+  import("@/features/products/components/ProductForm").then((mod) => ({ default: mod.ProductForm }))
+);
 
-function IconBox({ size = 18 }: { size?: number }) {
+function IconBox() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
       <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
       <line x1="12" y1="22.08" x2="12" y2="12" />
@@ -25,18 +30,29 @@ function IconBox({ size = 18 }: { size?: number }) {
 
 function IconCheckCircle() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
       <polyline points="22 4 12 14.01 9 11.01" />
     </svg>
   );
 }
 
-function IconDollar() {
+function IconRupee() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <line x1="12" y1="1" x2="12" y2="23" />
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="6" y1="3" x2="18" y2="3" />
+      <line x1="6" y1="8" x2="18" y2="8" />
+      <path d="M6 13l8.5 8" />
+      <path d="M6 13h3a4 4 0 0 0 0-8" />
+    </svg>
+  );
+}
+
+function IconSearch() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   );
 }
@@ -58,89 +74,19 @@ function IconMinus() {
   );
 }
 
-
-
-function SkeletonCard() {
-  return (
-    <div className="skeleton-card" aria-hidden="true">
-      <div className="skeleton skeleton-image" />
-      <div className="skeleton-body">
-        {/* Category pill */}
-        <div className="skeleton skeleton-line skeleton-line-xs" />
-        {/* Product name */}
-        <div className="skeleton skeleton-line skeleton-line-md" />
-        {/* Description line 1 */}
-        <div className="skeleton skeleton-line skeleton-line-lg" />
-        {/* Description line 2 */}
-        <div className="skeleton skeleton-line skeleton-line-sm" />
-        {/* Footer: price + badge */}
-        <div className="skeleton-footer">
-          <div className="skeleton skeleton-line skeleton-line-price" />
-          <div className="skeleton skeleton-badge" />
-        </div>
-      </div>
-      <div className="skeleton-actions">
-        <div className="skeleton skeleton-btn" />
-      </div>
-    </div>
-  );
-}
-
-
-
 function ProductsPageContent() {
-  const { searchParams, setParams } = useQueryParams();
+  const {
+    state: filterState,
+    dispatch: dispatchFilter,
+    urlParams,
+    isFiltered,
+    handleCategoryChange,
+    handleSortChange,
+    handlePageChange,
+    handleReset,
+  } = useProductsFilter();
 
-  const urlSearch = searchParams.get("search") || "";
-  const urlCategory = searchParams.get("category") || "all";
-  const urlMinPrice = searchParams.get("minPrice") || "";
-  const urlMaxPrice = searchParams.get("maxPrice") || "";
-  const urlSort = searchParams.get("sort") || "newest";
-  const urlPage = searchParams.get("page") || "1";
-
-  const [searchInput, setSearchInput] = useState(urlSearch);
-  const [minPriceInput, setMinPriceInput] = useState(urlMinPrice);
-  const [maxPriceInput, setMaxPriceInput] = useState(urlMaxPrice);
   const [showForm, setShowForm] = useState(false);
-
-  const updateFilters = useCallback(
-    (updates: Record<string, string | null>) => {
-      const sanitizedUpdates: Record<string, string | null> = { ...updates };
-      
-      // Convert default values to null so they are removed from the URL
-      if (updates.category === "all") sanitizedUpdates.category = null;
-      if (updates.sort === "newest") sanitizedUpdates.sort = null;
-      if (updates.page === "1") sanitizedUpdates.page = null;
-
-      // Reset page to 1 on any filter change (if not explicitly updating page)
-      if (!updates.page && searchParams.has("page")) {
-        sanitizedUpdates.page = null;
-      }
-
-      setParams(sanitizedUpdates);
-    },
-    [setParams, searchParams]
-  );
-
-  // Debounce Search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchInput !== urlSearch) {
-        updateFilters({ search: searchInput });
-      }
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [searchInput, urlSearch, updateFilters]);
-
-  // Debounce Price Range
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (minPriceInput !== urlMinPrice || maxPriceInput !== urlMaxPrice) {
-        updateFilters({ minPrice: minPriceInput, maxPrice: maxPriceInput });
-      }
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [minPriceInput, maxPriceInput, urlMinPrice, urlMaxPrice, updateFilters]);
 
   const {
     products,
@@ -155,41 +101,56 @@ function ProductsPageContent() {
     addProduct,
     deleteProduct,
   } = useProducts({
-    search: urlSearch,
-    category: urlCategory,
-    minPrice: urlMinPrice,
-    maxPrice: urlMaxPrice,
-    sort: urlSort,
-    page: urlPage,
+    search: urlParams.search,
+    category: urlParams.category,
+    minPrice: urlParams.minPrice,
+    maxPrice: urlParams.maxPrice,
+    sort: urlParams.sort,
+    page: urlParams.page,
   });
 
   const { user } = useAuth();
   const canAddProduct = user && ["SUPER_ADMIN", "ADMIN", "VENDOR"].includes(user.role);
 
-  // Calculate stats from loaded page (for enterprise logic, stats might be separate query)
-  const totalValue = products.reduce(
-    (sum, p) => sum + parseFloat(formatPrice(p.basePrice)) * p.stock,
-    0
+  // Memoized calculations — avoid re-computations when products don't change
+  const totalValue = useMemo(
+    () => products.reduce((sum, p) => sum + parseFloat(formatPrice(p.basePrice)) * p.stock, 0),
+    [products]
   );
-  const inStock = products.filter((p) => p.stock > 0).length;
+  const inStock = useMemo(
+    () => products.filter((p) => p.stock > 0).length,
+    [products]
+  );
 
-  async function handleAddProduct(data: ProductData) {
-    const result = await addProduct(data);
-    if (result) setShowForm(false);
-  }
-
-  const isFiltered = !!(urlSearch || urlCategory !== "all" || urlMinPrice || urlMaxPrice);
+  const handleAddProduct = useCallback(
+    async (data: ProductData) => {
+      const result = await addProduct(data);
+      if (result) setShowForm(false);
+    },
+    [addProduct]
+  );
 
   return (
-    <div className="container">
-      {/* Page header */}
-      <div className="page-header">
-        <div className="page-header-left">
-          <h1>Products</h1>
-          <p>
+    <div className="container" style={{ paddingTop: "var(--space-6)", paddingBottom: "var(--space-16)" }}>
+      {/* Page Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          flexWrap: "wrap",
+          gap: "var(--space-4)",
+          marginBottom: "var(--space-6)",
+        }}
+      >
+        <div>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)", fontWeight: 700, margin: "0 0 var(--space-1)", color: "var(--color-text-primary)" }}>
+            Product Catalog
+          </h1>
+          <p style={{ margin: 0, color: "var(--color-text-secondary)", fontSize: "0.95rem" }}>
             {loading
               ? "Loading catalog…"
-              : `${total} product${total !== 1 ? "s" : ""} in catalog`}
+              : `Showing ${products.length} of ${total} products`}
           </p>
         </div>
 
@@ -200,101 +161,151 @@ function ProductsPageContent() {
             className={`btn ${showForm ? "btn-secondary" : "btn-primary"}`}
             onClick={() => setShowForm((v) => !v)}
             aria-expanded={showForm}
+            style={{ height: "42px", padding: "0 20px" }}
           >
-            {showForm ? <><IconMinus />Cancel</> : <><IconPlus />Add Product</>}
+            {showForm ? <><IconMinus /> Cancel</> : <><IconPlus /> Add Product</>}
           </button>
         )}
       </div>
 
-      {/* Stats */}
+      {/* Stats Strip (For Admins / Vendors) */}
       {canAddProduct && !loading && total > 0 && (
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon"><IconBox /></div>
-            <div className="stat-value">{total}</div>
-            <div className="stat-label">Total Products</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon"><IconCheckCircle /></div>
-            <div className="stat-value">{inStock}</div>
-            <div className="stat-label">In Stock (Current Page)</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon"><IconDollar /></div>
-            <div className="stat-value">
-              ₹{totalValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-4)", marginBottom: "var(--space-6)" }}>
+          <div className="profile-section-card" style={{ padding: "var(--space-4) var(--space-5)", display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
+            <div style={{ width: "42px", height: "42px", borderRadius: "var(--radius-md)", background: "var(--color-primary-surface)", color: "var(--color-primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <IconBox />
             </div>
-            <div className="stat-label">Inventory Value (Current Page)</div>
+            <div>
+              <div style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>TOTAL PRODUCTS</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.3rem", fontWeight: 700, color: "var(--color-text-primary)" }}>{total}</div>
+            </div>
+          </div>
+
+          <div className="profile-section-card" style={{ padding: "var(--space-4) var(--space-5)", display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
+            <div style={{ width: "42px", height: "42px", borderRadius: "var(--radius-md)", background: "var(--color-success-surface)", color: "var(--color-success)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <IconCheckCircle />
+            </div>
+            <div>
+              <div style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>IN STOCK</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.3rem", fontWeight: 700, color: "var(--color-text-primary)" }}>{inStock}</div>
+            </div>
+          </div>
+
+          <div className="profile-section-card" style={{ padding: "var(--space-4) var(--space-5)", display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
+            <div style={{ width: "42px", height: "42px", borderRadius: "var(--radius-md)", background: "var(--color-accent-surface, rgba(166, 82, 26, 0.1))", color: "var(--color-accent, #A6521A)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <IconRupee />
+            </div>
+            <div>
+              <div style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>INVENTORY VALUE</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.3rem", fontWeight: 700, color: "var(--color-text-primary)" }}>
+                ₹{totalValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Alerts */}
-      {error && <div className="alert alert-error" role="alert">{error}</div>}
-      {success && <div className="alert alert-success" role="status">{success}</div>}
+      {error && <div className="form-error-banner" role="alert" style={{ marginBottom: "var(--space-4)" }}>{error}</div>}
+      {success && <div className="alert alert-success" role="status" style={{ marginBottom: "var(--space-4)" }}>{success}</div>}
 
-      {/* Filter bar */}
-      <div className="filter-bar" style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
-        <input
-          id="product-search"
-          className="filter-search"
-          type="search"
-          placeholder="Search products…"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          aria-label="Search products"
-        />
-        <CategoryFilter
-          id="category-filter"
-          className="filter-select"
-          value={urlCategory}
-          onChange={(val) => updateFilters({ category: val })}
-          includeAll
-        />
-        <select
-          className="filter-select"
-          value={urlSort}
-          onChange={(e) => updateFilters({ sort: e.target.value })}
-          aria-label="Sort products"
-        >
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="price_asc">Price: Low to High</option>
-          <option value="price_desc">Price: High to Low</option>
-        </select>
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+      {/* Filter & Search Toolbar */}
+      <div
+        className="profile-section-card"
+        style={{
+          padding: "var(--space-4) var(--space-5)",
+          marginBottom: "var(--space-8)",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "var(--space-3)",
+          alignItems: "center",
+        }}
+      >
+        {/* Search input with icon */}
+        <div style={{ position: "relative", flex: "1 1 240px", minWidth: "200px" }}>
+          <div style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted)", pointerEvents: "none", display: "flex" }}>
+            <IconSearch />
+          </div>
+          <input
+            id="product-search"
+            type="search"
+            placeholder="Search products by name or keyword…"
+            className="form-input"
+            style={{ paddingLeft: "38px", height: "42px" }}
+            value={filterState.search}
+            onChange={(e) => dispatchFilter({ type: "SET_SEARCH", payload: e.target.value })}
+            aria-label="Search products"
+          />
+        </div>
+
+        {/* Category filter dropdown */}
+        <div style={{ flex: "0 1 180px", minWidth: "140px" }}>
+          <CategoryFilter
+            id="category-filter"
+            className="form-input"
+            value={filterState.category}
+            onChange={handleCategoryChange}
+            includeAll
+          />
+        </div>
+
+        {/* Sort dropdown */}
+        <div style={{ flex: "0 1 180px", minWidth: "140px" }}>
+          <select
+            className="form-input"
+            value={filterState.sort}
+            onChange={(e) => handleSortChange(e.target.value)}
+            aria-label="Sort products"
+            style={{ height: "42px" }}
+          >
+            <option value="newest">Sort by: Newest</option>
+            <option value="oldest">Sort by: Oldest</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+          </select>
+        </div>
+
+        {/* Price Range Inputs */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", flex: "0 1 auto" }}>
           <input
             type="number"
             placeholder="Min ₹"
-            value={minPriceInput}
-            onChange={(e) => setMinPriceInput(e.target.value)}
-            className="filter-search"
-            style={{ width: "100px" }}
+            value={filterState.minPrice}
+            onChange={(e) => dispatchFilter({ type: "SET_MIN_PRICE", payload: e.target.value })}
+            className="form-input"
+            style={{ width: "88px", height: "42px" }}
             aria-label="Minimum Price"
           />
-          <span style={{ color: "var(--color-text-muted)" }}>-</span>
+          <span style={{ color: "var(--color-text-muted)", fontWeight: 600 }}>–</span>
           <input
             type="number"
             placeholder="Max ₹"
-            value={maxPriceInput}
-            onChange={(e) => setMaxPriceInput(e.target.value)}
-            className="filter-search"
-            style={{ width: "100px" }}
+            value={filterState.maxPrice}
+            onChange={(e) => dispatchFilter({ type: "SET_MAX_PRICE", payload: e.target.value })}
+            className="form-input"
+            style={{ width: "88px", height: "42px" }}
             aria-label="Maximum Price"
           />
         </div>
+
+        {/* Clear Filters Button */}
+        {isFiltered && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleReset}
+            style={{ height: "42px", padding: "0 16px", fontSize: "0.85rem" }}
+          >
+            Clear Filters
+          </button>
+        )}
       </div>
 
-      {/* Loading Skeleton */}
+      {/* Loading Skeleton via component */}
       {loading ? (
-        <div className="skeleton-grid" aria-label="Loading products" aria-busy="true">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-
-      /* Empty state */
+        <ProductGridSkeleton count={6} />
       ) : products.length === 0 ? (
+        /* Empty State */
         <div className="empty-state">
           <div className="empty-icon">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ color: "var(--color-text-muted)" }}>
@@ -306,100 +317,93 @@ function ProductsPageContent() {
 
           {isFiltered ? (
             <>
-              <h3>No products match</h3>
-              <p>Try adjusting your search or filter to find what you are looking for.</p>
-              <div className="empty-state-actions">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setSearchInput("");
-                    setMinPriceInput("");
-                    setMaxPriceInput("");
-                    updateFilters({ search: null, category: "all", minPrice: null, maxPrice: null });
-                  }}
-                >
-                  Clear filters
-                </button>
-              </div>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", margin: "var(--space-2) 0" }}>No products match your filters</h2>
+              <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-4)" }}>Try adjusting your search or price range to find what you are looking for.</p>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleReset}
+              >
+                Clear all filters
+              </button>
             </>
           ) : (
             <>
-              <h3>No products yet</h3>
-              <p>Create your first product to start managing your inventory.</p>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", margin: "var(--space-2) 0" }}>No products in catalog yet</h2>
+              <p style={{ color: "var(--color-text-muted)" }}>Create your first product to start managing your inventory.</p>
               {canAddProduct && (
-                <div className="empty-state-actions">
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => {
-                      setShowForm(true);
-                      setTimeout(() => {
-                        document.getElementById("add")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }, 100);
-                    }}
-                  >
-                    Add Product
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setShowForm(true)}
+                  style={{ marginTop: "var(--space-4)" }}
+                >
+                  Add First Product
+                </button>
               )}
             </>
           )}
         </div>
-
-      /* Product grid */
       ) : (
+        /* Product Grid */
         <>
-          <div className="products-grid">
-            {products.map((product) => (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "var(--space-6)" }}>
+            {products.map((product, idx) => (
               <ProductCard
                 key={product.id}
                 product={product}
                 onDelete={deleteProduct}
                 deleting={deletingId === product.id}
                 canManage={!!canAddProduct}
+                priority={idx < 4}
               />
             ))}
           </div>
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="pagination" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "1rem", marginTop: "2rem" }}>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "var(--space-3)", marginTop: "var(--space-10)" }}>
               <button
+                type="button"
                 className="btn btn-secondary"
                 disabled={page <= 1}
-                onClick={() => updateFilters({ page: String(page - 1) })}
+                onClick={() => handlePageChange(page - 1)}
+                style={{ padding: "8px 18px", fontSize: "0.875rem" }}
               >
-                Previous
+                ← Previous
               </button>
-              <span style={{ fontSize: "0.875rem", color: "var(--color-text-muted)" }}>Page {page} of {totalPages}</span>
+              <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text-secondary)", padding: "0 8px" }}>
+                Page {page} of {totalPages}
+              </span>
               <button
+                type="button"
                 className="btn btn-secondary"
                 disabled={page >= totalPages}
-                onClick={() => updateFilters({ page: String(page + 1) })}
+                onClick={() => handlePageChange(page + 1)}
+                style={{ padding: "8px 18px", fontSize: "0.875rem" }}
               >
-                Next
+                Next →
               </button>
             </div>
           )}
         </>
       )}
 
-      {/* Add Product form */}
+      {/* Lazy Add Product form */}
       {showForm && canAddProduct && (
         <div id="add" className="form-reveal" style={{ marginTop: "var(--space-8)" }}>
-          <ProductForm onSubmit={handleAddProduct} loading={adding} />
+          <Suspense fallback={<div style={{ padding: "2rem", textAlign: "center" }}>Loading Form…</div>}>
+            <LazyProductForm onSubmit={handleAddProduct} loading={adding} />
+          </Suspense>
         </div>
       )}
-
-      <div style={{ paddingBottom: "var(--space-16)" }} />
     </div>
   );
 }
 
 export default function ProductsPage() {
   return (
-    <Suspense fallback={<div className="container"><div className="skeleton-grid" aria-busy="true" style={{ marginTop: '2rem' }}>{Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}</div></div>}>
+    <Suspense fallback={<div className="container" style={{ padding: "3rem 0" }}><ProductGridSkeleton count={6} /></div>}>
       <ProductsPageContent />
     </Suspense>
   );
