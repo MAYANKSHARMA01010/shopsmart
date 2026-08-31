@@ -253,7 +253,9 @@ export default function ProfilePage() {
             <div className="form-grid">
               {/* Full Name */}
               <div className="form-group">
-                <label className="form-label" htmlFor="prof-name">Full Name</label>
+                <div style={{ display: "flex", alignItems: "center", minHeight: "24px", marginBottom: "var(--space-2)" }}>
+                  <label className="form-label" htmlFor="prof-name" style={{ margin: 0 }}>Full Name</label>
+                </div>
                 <input
                   id="prof-name"
                   type="text"
@@ -268,7 +270,9 @@ export default function ProfilePage() {
 
               {/* Username */}
               <div className="form-group">
-                <label className="form-label" htmlFor="prof-username">Username</label>
+                <div style={{ display: "flex", alignItems: "center", minHeight: "24px", marginBottom: "var(--space-2)" }}>
+                  <label className="form-label" htmlFor="prof-username" style={{ margin: 0 }}>Username</label>
+                </div>
                 <input
                   id="prof-username"
                   type="text"
@@ -282,34 +286,28 @@ export default function ProfilePage() {
                 {errors.username && <span className="error-message">{errors.username.message}</span>}
               </div>
 
+
               {/* Email — always read-only */}
               <div className="form-group">
-                <label className="form-label" htmlFor="prof-email">Email Address</label>
-                <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
-                  <input
-                    id="prof-email"
-                    type="email"
-                    className="form-input"
-                    value={user.email}
-                    readOnly
-                    disabled
-                    style={{ opacity: 0.8, flex: 1 }}
-                  />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: "24px", marginBottom: "var(--space-2)" }}>
+                  <label className="form-label" htmlFor="prof-email" style={{ margin: 0 }}>
+                    Email Address
+                  </label>
                   {user.isEmailVerified ? (
                     <span
                       id="badge-email-verified"
                       style={{
-                        fontSize: "0.74rem",
-                        fontWeight: 700,
-                        color: "var(--color-success, #10b981)",
-                        background: "rgba(16, 185, 129, 0.1)",
-                        border: "1px solid rgba(16, 185, 129, 0.3)",
-                        padding: "4px 10px",
-                        borderRadius: "var(--radius-full)",
+                        fontSize: "0.72rem",
+                        fontWeight: 600,
+                        color: "var(--color-success, #059669)",
+                        background: "rgba(16, 185, 129, 0.12)",
+                        border: "1px solid rgba(16, 185, 129, 0.25)",
+                        padding: "2px 8px",
+                        borderRadius: "9999px",
                         display: "inline-flex",
                         alignItems: "center",
                         gap: "4px",
-                        whiteSpace: "nowrap",
+                        lineHeight: "1.2",
                       }}
                     >
                       <IconCheck /> Verified
@@ -319,14 +317,14 @@ export default function ProfilePage() {
                       <span
                         id="badge-email-unverified"
                         style={{
-                          fontSize: "0.74rem",
-                          fontWeight: 700,
+                          fontSize: "0.72rem",
+                          fontWeight: 600,
                           color: "#d97706",
-                          background: "rgba(245, 158, 11, 0.1)",
-                          border: "1px solid rgba(245, 158, 11, 0.3)",
-                          padding: "4px 10px",
-                          borderRadius: "var(--radius-full)",
-                          whiteSpace: "nowrap",
+                          background: "rgba(245, 158, 11, 0.12)",
+                          border: "1px solid rgba(245, 158, 11, 0.25)",
+                          padding: "2px 8px",
+                          borderRadius: "9999px",
+                          lineHeight: "1.2",
                         }}
                       >
                         Not Verified
@@ -334,14 +332,19 @@ export default function ProfilePage() {
                       <button
                         type="button"
                         id="btn-verify-email"
-                        className="btn btn-primary"
                         style={{
-                          padding: "4px 12px",
-                          fontSize: "0.76rem",
+                          padding: "2px 10px",
+                          fontSize: "0.72rem",
                           fontWeight: 600,
-                          borderRadius: "var(--radius-md)",
-                          whiteSpace: "nowrap",
+                          borderRadius: "9999px",
+                          background: "var(--color-primary, #0f766e)",
+                          color: "#ffffff",
+                          border: "none",
+                          cursor: isSendingOtp ? "not-allowed" : "pointer",
+                          transition: "all 0.15s ease",
                           lineHeight: "1.4",
+                          display: "inline-flex",
+                          alignItems: "center",
                         }}
                         onClick={() => handleOpenVerifyModal("email")}
                         disabled={isSendingOtp}
@@ -351,39 +354,40 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
+                <input
+                  id="prof-email"
+                  type="email"
+                  className="form-input"
+                  value={user.email}
+                  readOnly
+                  disabled
+                  style={{ opacity: 0.8, width: "100%" }}
+                />
               </div>
 
               {/* Phone */}
               <div className="form-group">
-                <label className="form-label" htmlFor="prof-phone">Phone Number</label>
-                <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
-                  <input
-                    id="prof-phone"
-                    type="text"
-                    className={`form-input${errors.phone ? " input-error" : ""}`}
-                    {...register("phone")}
-                    readOnly={!isEditing}
-                    disabled={!isEditing}
-                    style={{ opacity: !isEditing ? 0.8 : 1, flex: 1 }}
-                    placeholder={!isEditing && !user.phone ? "Not set" : "Enter phone number"}
-                  />
-                  {/* Show verify button ONLY when phone number is set */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: "24px", marginBottom: "var(--space-2)" }}>
+                  <label className="form-label" htmlFor="prof-phone" style={{ margin: 0 }}>
+                    Phone Number
+                  </label>
+                  {/* Show verify badge/button ONLY when phone number is set */}
                   {hasPhoneSet && (
                     user.isPhoneVerified ? (
                       <span
                         id="badge-phone-verified"
                         style={{
-                          fontSize: "0.74rem",
-                          fontWeight: 700,
-                          color: "var(--color-success, #10b981)",
-                          background: "rgba(16, 185, 129, 0.1)",
-                          border: "1px solid rgba(16, 185, 129, 0.3)",
-                          padding: "4px 10px",
-                          borderRadius: "var(--radius-full)",
+                          fontSize: "0.72rem",
+                          fontWeight: 600,
+                          color: "var(--color-success, #059669)",
+                          background: "rgba(16, 185, 129, 0.12)",
+                          border: "1px solid rgba(16, 185, 129, 0.25)",
+                          padding: "2px 8px",
+                          borderRadius: "9999px",
                           display: "inline-flex",
                           alignItems: "center",
                           gap: "4px",
-                          whiteSpace: "nowrap",
+                          lineHeight: "1.2",
                         }}
                       >
                         <IconCheck /> Verified
@@ -393,14 +397,14 @@ export default function ProfilePage() {
                         <span
                           id="badge-phone-unverified"
                           style={{
-                            fontSize: "0.74rem",
-                            fontWeight: 700,
+                            fontSize: "0.72rem",
+                            fontWeight: 600,
                             color: "#d97706",
-                            background: "rgba(245, 158, 11, 0.1)",
-                            border: "1px solid rgba(245, 158, 11, 0.3)",
-                            padding: "4px 10px",
-                            borderRadius: "var(--radius-full)",
-                            whiteSpace: "nowrap",
+                            background: "rgba(245, 158, 11, 0.12)",
+                            border: "1px solid rgba(245, 158, 11, 0.25)",
+                            padding: "2px 8px",
+                            borderRadius: "9999px",
+                            lineHeight: "1.2",
                           }}
                         >
                           Not Verified
@@ -408,14 +412,19 @@ export default function ProfilePage() {
                         <button
                           type="button"
                           id="btn-verify-phone"
-                          className="btn btn-primary"
                           style={{
-                            padding: "4px 12px",
-                            fontSize: "0.76rem",
+                            padding: "2px 10px",
+                            fontSize: "0.72rem",
                             fontWeight: 600,
-                            borderRadius: "var(--radius-md)",
-                            whiteSpace: "nowrap",
+                            borderRadius: "9999px",
+                            background: "var(--color-primary, #0f766e)",
+                            color: "#ffffff",
+                            border: "none",
+                            cursor: isSendingOtp ? "not-allowed" : "pointer",
+                            transition: "all 0.15s ease",
                             lineHeight: "1.4",
+                            display: "inline-flex",
+                            alignItems: "center",
                           }}
                           onClick={() => handleOpenVerifyModal("phone")}
                           disabled={isSendingOtp}
@@ -426,12 +435,25 @@ export default function ProfilePage() {
                     )
                   )}
                 </div>
+                <input
+                  id="prof-phone"
+                  type="text"
+                  className={`form-input${errors.phone ? " input-error" : ""}`}
+                  {...register("phone")}
+                  readOnly={!isEditing}
+                  disabled={!isEditing}
+                  style={{ opacity: !isEditing ? 0.8 : 1, width: "100%" }}
+                  placeholder={!isEditing && !user.phone ? "Not set" : "Enter phone number"}
+                />
                 {errors.phone && <span className="error-message">{errors.phone.message}</span>}
               </div>
 
+
               {/* Gender */}
               <div className="form-group">
-                <label className="form-label" htmlFor="prof-gender">Gender</label>
+                <div style={{ display: "flex", alignItems: "center", minHeight: "24px", marginBottom: "var(--space-2)" }}>
+                  <label className="form-label" htmlFor="prof-gender" style={{ margin: 0 }}>Gender</label>
+                </div>
                 <select
                   id="prof-gender"
                   className={`form-input${errors.gender ? " input-error" : ""}`}
@@ -449,7 +471,9 @@ export default function ProfilePage() {
 
               {/* Member since — read-only */}
               <div className="form-group">
-                <label className="form-label" htmlFor="prof-joined">Member Since</label>
+                <div style={{ display: "flex", alignItems: "center", minHeight: "24px", marginBottom: "var(--space-2)" }}>
+                  <label className="form-label" htmlFor="prof-joined" style={{ margin: 0 }}>Member Since</label>
+                </div>
                 <input
                   id="prof-joined"
                   type="text"
@@ -460,6 +484,7 @@ export default function ProfilePage() {
                   style={{ opacity: 0.8 }}
                 />
               </div>
+
             </div>
 
             {isEditing && (
