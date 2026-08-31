@@ -190,7 +190,7 @@ fi
 # ------------------------------------------------------------------------------
 echo -e "${BLUE}💬 Checking WhatsApp Provider (WAHA) service on port 6969...${NC}"
 if is_docker_available; then
-  WAHA_IMAGE="devlike/waha"
+  WAHA_IMAGE="devlikeapro/waha:latest"
   WAHA_CONTAINER="shopsmart-waha"
   
   # Check if container is already running
@@ -200,12 +200,12 @@ if is_docker_available; then
     # Check if container exists but stopped
     if docker ps -a --format '{{.Names}}' | grep -q "^${WAHA_CONTAINER}$"; then
       echo -e "${YELLOW}🔄 Starting existing WAHA container (${WAHA_CONTAINER})...${NC}"
-      docker start "$WAHA_CONTAINER" >/dev/null
+      docker start "$WAHA_CONTAINER" >/dev/null 2>&1 || true
     else
       # Check if image is present, if not pull it
-      if ! docker images --format '{{.Repository}}' | grep -q "^devlike/waha"; then
+      if ! docker images --format '{{.Repository}}' | grep -q "devlikeapro/waha"; then
         echo -e "${YELLOW}📥 Downloading WAHA Docker image (${WAHA_IMAGE})... This may take a moment.${NC}"
-        docker pull "$WAHA_IMAGE"
+        docker pull "$WAHA_IMAGE" || true
       fi
       
       echo -e "${BLUE}🐳 Creating and starting WAHA container on port 6969...${NC}"
@@ -213,7 +213,7 @@ if is_docker_available; then
         --name "$WAHA_CONTAINER" \
         -p 6969:3000 \
         --restart unless-stopped \
-        "$WAHA_IMAGE" >/dev/null
+        "$WAHA_IMAGE" >/dev/null 2>&1 || true
     fi
     echo -e "${GREEN}✓ WAHA started successfully on http://localhost:6969${NC}"
   fi
@@ -222,12 +222,13 @@ else
   echo -e "${YELLOW}   (Start Docker Desktop to enable local WhatsApp OTP delivery).${NC}"
 fi
 
+
 # ------------------------------------------------------------------------------
 # 4. Ensure Android SMS Gateway Docker Container (Port 9696 -> 8080)
 # ------------------------------------------------------------------------------
 echo -e "${BLUE}📱 Checking Android SMS Gateway service on port 9696...${NC}"
 if is_docker_available; then
-  SMS_IMAGE="capcom6/android-sms-gateway-server:latest"
+  SMS_IMAGE="ghcr.io/android-sms-gateway/server:latest"
   SMS_CONTAINER="shopsmart-sms-gateway"
   
   # Check if container is already running
@@ -237,10 +238,10 @@ if is_docker_available; then
     # Check if container exists but stopped
     if docker ps -a --format '{{.Names}}' | grep -q "^${SMS_CONTAINER}$"; then
       echo -e "${YELLOW}🔄 Starting existing Android SMS Gateway container (${SMS_CONTAINER})...${NC}"
-      docker start "$SMS_CONTAINER" >/dev/null
+      docker start "$SMS_CONTAINER" >/dev/null 2>&1 || true
     else
       # Check if image is present, if not pull it
-      if ! docker images --format '{{.Repository}}' | grep -q "android-sms-gateway-server"; then
+      if ! docker images --format '{{.Repository}}' | grep -q "android-sms-gateway/server"; then
         echo -e "${YELLOW}📥 Downloading Android SMS Gateway Docker image (${SMS_IMAGE})...${NC}"
         docker pull "$SMS_IMAGE" || true
       fi
@@ -259,6 +260,7 @@ if is_docker_available; then
 else
   echo -e "${YELLOW}⚠️  Docker daemon is not running. SMS Gateway container could not be started.${NC}"
 fi
+
 
 # ------------------------------------------------------------------------------
 # 5. Check & Setup Environment Files
