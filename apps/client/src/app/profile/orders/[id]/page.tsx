@@ -5,9 +5,24 @@ import Link from "next/link";
 import { orderService } from "../../../../features/orders/services/orderService";
 import type { Order } from "../../../../features/orders/types/orderSchema";
 import { formatPrice } from "../../../../features/products/types/productSchema";
+import { ProductImage } from "../../../../features/products/components/ProductImage";
 
 interface OrderDetailsPageProps {
   params: Promise<{ id: string }>;
+}
+
+function getStatusBadge(status: string) {
+  switch (status) {
+    case "DELIVERED":
+      return { bg: "var(--color-success-surface)", color: "var(--color-success)", border: "var(--color-success-border)" };
+    case "SHIPPED":
+    case "PROCESSING":
+      return { bg: "var(--color-primary-surface)", color: "var(--color-primary)", border: "var(--color-primary-border)" };
+    case "CANCELLED":
+      return { bg: "var(--color-error-surface)", color: "var(--color-error)", border: "var(--color-error-border)" };
+    default:
+      return { bg: "var(--color-surface-sunken)", color: "var(--color-text-secondary)", border: "var(--color-border)" };
+  }
 }
 
 export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
@@ -21,8 +36,9 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
       try {
         const response = await orderService.getOrderById(id);
         setOrder(response.data.order);
-      } catch (err: any) {
-        setError(err.response?.data?.message || err.message || "Failed to load order details");
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? err.message : "Failed to load order details";
+        setError(msg);
       } finally {
         setIsLoading(false);
       }
@@ -32,105 +48,165 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
 
   if (isLoading) {
     return (
-      <div className="container" style={{ padding: "4rem 0", textAlign: "center" }}>
-        <p>Loading Order...</p>
+      <div style={{ padding: "4rem 0", textAlign: "center", color: "var(--color-text-muted)" }}>
+        Loading Order Details…
       </div>
     );
   }
 
   if (error || !order) {
     return (
-      <div className="container" style={{ padding: "4rem 0", textAlign: "center" }}>
-        <h2 style={{ color: "var(--color-danger)" }}>Oops!</h2>
-        <p>{error || "Order not found"}</p>
-        <Link href="/orders" className="btn btn-primary" style={{ marginTop: "1rem", display: "inline-block" }}>
-          Back to Orders
+      <div className="profile-section-card" style={{ padding: "3rem", textAlign: "center" }}>
+        <h2 style={{ fontFamily: "var(--font-display)", color: "var(--color-error)", marginBottom: "var(--space-2)" }}>Order Not Found</h2>
+        <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-4)" }}>{error || "We couldn't find the requested order."}</p>
+        <Link href="/profile/orders" className="btn btn-primary">
+          ← Back to My Orders
         </Link>
       </div>
     );
   }
 
-  return (
-    <div className="container" style={{ padding: "2rem 0" }}>
-      <Link href="/orders" style={{ color: "var(--color-text-muted)", textDecoration: "none", display: "inline-block", marginBottom: "2rem" }}>
-        &larr; Back to Orders
-      </Link>
+  const badge = getStatusBadge(order.status);
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <h1 style={{ fontSize: "2rem", margin: "0 0 0.5rem 0" }}>Order #{order.id}</h1>
-          <div style={{ color: "var(--color-text-muted)" }}>
-            Placed on {new Date(order.createdAt).toLocaleString()}
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+      {/* Back Link */}
+      <div>
+        <Link href="/profile/orders" style={{ color: "var(--color-text-muted)", textDecoration: "none", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+          ← Back to Orders
+        </Link>
+      </div>
+
+      {/* Header Banner */}
+      <div className="profile-section-card" style={{ padding: "var(--space-6)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "var(--space-4)" }}>
+          <div>
+            <span style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+              ORDER DETAILS
+            </span>
+            <h1 style={{ fontFamily: "var(--font-mono)", fontSize: "1.3rem", fontWeight: 700, margin: "4px 0", color: "var(--color-text-primary)" }}>
+              #{order.id}
+            </h1>
+            <p style={{ margin: 0, color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>
+              Placed on {new Date(order.createdAt).toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            </p>
           </div>
-        </div>
-        <div>
-          <span style={{ display: "inline-block", padding: "0.5rem 1rem", borderRadius: "99px", fontSize: "0.875rem", fontWeight: 600, background: order.status === "DELIVERED" ? "rgba(16, 185, 129, 0.1)" : "var(--color-background)", color: order.status === "DELIVERED" ? "var(--color-success)" : "var(--color-text)", border: `1px solid ${order.status === "DELIVERED" ? "var(--color-success)" : "var(--color-border)"}` }}>
-            Status: {order.status}
+
+          <span
+            style={{
+              padding: "4px 14px",
+              borderRadius: "var(--radius-full)",
+              fontSize: "0.78rem",
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              background: badge.bg,
+              color: badge.color,
+              border: `1px solid ${badge.border}`,
+            }}
+          >
+            {order.status}
           </span>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 350px", gap: "2rem", alignItems: "start" }}>
+      {/* 2-Column Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "var(--space-5)", alignItems: "start" }}>
         {/* Left: Items List */}
-        <div style={{ background: "var(--color-surface)", borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border)", overflow: "hidden" }}>
-          <div style={{ padding: "1.5rem", borderBottom: "1px solid var(--color-border)", fontWeight: 600, fontSize: "1.125rem" }}>
-            Items in your order
+        <div className="profile-section-card" style={{ overflow: "hidden" }}>
+          <div className="profile-section-header">
+            <h2 className="profile-section-title">Items in Order ({order.items.length})</h2>
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
             {order.items.map((item) => (
-              <div key={item.id} style={{ display: "flex", gap: "1.5rem", padding: "1.5rem", borderBottom: "1px solid var(--color-border)" }}>
-                <Link href={`/products/${item.productId}`} style={{ flexShrink: 0, display: "block", position: "relative", width: "80px", height: "80px", borderRadius: "var(--radius-sm)", overflow: "hidden", background: "var(--color-background)" }}>
-                  {item.product?.images?.[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.product.images[0]} alt={item.product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", color: "var(--color-text-muted)" }}>No Image</div>
-                  )}
+              <div
+                key={item.id}
+                style={{
+                  display: "flex",
+                  gap: "var(--space-4)",
+                  padding: "var(--space-4) var(--space-5)",
+                  borderBottom: "1px solid var(--color-border)",
+                  alignItems: "center",
+                }}
+              >
+                <Link
+                  href={`/products/${item.productId}`}
+                  style={{
+                    position: "relative",
+                    width: "70px",
+                    height: "70px",
+                    borderRadius: "var(--radius-md)",
+                    overflow: "hidden",
+                    background: "var(--color-surface-sunken)",
+                    border: "1px solid var(--color-border)",
+                    flexShrink: 0,
+                    display: "block",
+                  }}
+                >
+                  <ProductImage
+                    src={item.product?.images?.[0]}
+                    alt={item.product?.name ?? "Product"}
+                    fill
+                    sizes="70px"
+                  />
                 </Link>
-                
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
-                    <div>
-                      <Link href={`/products/${item.productId}`} style={{ color: "inherit", textDecoration: "none", fontWeight: 600 }}>
-                        {item.product?.name || "Unknown Product"}
-                      </Link>
-                      <div style={{ color: "var(--color-text-muted)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-                        Qty: {item.quantity} x ${formatPrice(item.price)}
-                      </div>
-                    </div>
-                    <div style={{ fontWeight: 600 }}>
-                      ${formatPrice(Number.parseFloat(String(item.price)) * item.quantity)}
-                    </div>
+
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontSize: "0.95rem", fontWeight: 600, margin: 0, color: "var(--color-text-primary)" }}>
+                    <Link href={`/products/${item.productId}`} style={{ color: "inherit", textDecoration: "none" }}>
+                      {item.product?.name || "Product"}
+                    </Link>
+                  </h3>
+                  <div style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", marginTop: "2px", fontFamily: "var(--font-mono)" }}>
+                    Qty: {item.quantity} × ₹{formatPrice(item.price)}
                   </div>
+                </div>
+
+                <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: "1rem", color: "var(--color-text-primary)" }}>
+                  ₹{formatPrice(Number.parseFloat(String(item.price)) * item.quantity)}
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right: Summary & Address */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-          <div style={{ padding: "1.5rem", background: "var(--color-surface)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}>
-            <h2 style={{ fontSize: "1.125rem", margin: "0 0 1rem 0" }}>Order Summary</h2>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem" }}>
-              <span style={{ color: "var(--color-text-muted)" }}>Subtotal</span>
-              <span>${formatPrice(order.totalAmount)}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem" }}>
-              <span style={{ color: "var(--color-text-muted)" }}>Shipping</span>
-              <span>$0.00</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "1rem", borderTop: "1px solid var(--color-border)", fontWeight: 600, fontSize: "1.125rem" }}>
-              <span>Total</span>
-              <span>${formatPrice(order.totalAmount)}</span>
+        {/* Right Column: Order Summary & Address */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          {/* Summary Card */}
+          <div className="profile-section-card" style={{ padding: "var(--space-5)" }}>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", margin: "0 0 var(--space-3)", paddingBottom: "var(--space-2)", borderBottom: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}>
+              Payment Summary
+            </h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", fontSize: "0.875rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-text-secondary)" }}>
+                <span>Subtotal</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--color-text-primary)" }}>
+                  ₹{formatPrice(order.totalAmount)}
+                </span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-text-secondary)" }}>
+                <span>Shipping</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--color-success)" }}>FREE</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "var(--space-2)", borderTop: "1px solid var(--color-border)", fontWeight: 700 }}>
+                <span>Total Paid</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "1.2rem", color: "var(--color-primary)" }}>
+                  ₹{formatPrice(order.totalAmount)}
+                </span>
+              </div>
             </div>
           </div>
 
+          {/* Delivery Address Card */}
           {order.address && (
-            <div style={{ padding: "1.5rem", background: "var(--color-surface)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}>
-              <h2 style={{ fontSize: "1.125rem", margin: "0 0 1rem 0" }}>Shipping Address</h2>
-              <div style={{ lineHeight: 1.5, color: "var(--color-text-muted)" }}>
-                <div><strong>{order.address.fullName || "Customer"}</strong></div>
+            <div className="profile-section-card" style={{ padding: "var(--space-5)" }}>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", margin: "0 0 var(--space-3)", paddingBottom: "var(--space-2)", borderBottom: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}>
+                Delivery Address
+              </h2>
+              <div style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 700, color: "var(--color-text-primary)", marginBottom: "4px" }}>
+                  {order.address.fullName || "Customer"}
+                </div>
                 <div>{order.address.street}</div>
                 <div>{order.address.city}, {order.address.state} {order.address.zipCode}</div>
                 <div>{order.address.country}</div>
