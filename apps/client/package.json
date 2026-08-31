@@ -16,7 +16,7 @@
     "@hookform/resolvers": "^5.4.0",
     "@shopsmart/api-contracts": "workspace:*",
     "@tanstack/react-query": "^5.101.0",
-    "axios": "^1.7.9",
+    "axios": "^1.18.0",
     "lucide-react": "^1.21.0",
     "next": "16.2.3",
     "react": "^19",
