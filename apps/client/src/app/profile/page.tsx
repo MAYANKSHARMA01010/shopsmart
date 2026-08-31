@@ -82,12 +82,14 @@ export default function ProfilePage() {
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     formState: { errors },
   } = useForm<UpdateProfileFormValues>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: { name: "", username: "", phone: "", gender: "" },
   });
+
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -443,52 +445,8 @@ export default function ProfilePage() {
                     )
                   )}
                 </div>
-                {isEditing ? (
                   <div style={{ display: "flex", width: "100%" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "0 12px",
-                        background: "var(--color-surface-elevated, #f3f4f6)",
-                        border: "1px solid var(--color-border)",
-                        borderRight: "none",
-                        borderTopLeftRadius: "var(--radius-md)",
-                        borderBottomLeftRadius: "var(--radius-md)",
-                        fontSize: "0.85rem",
-                        fontWeight: 600,
-                        color: "var(--color-text-primary)",
-                        userSelect: "none",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      <span role="img" aria-label="India" style={{ fontSize: "1.1rem" }}>🇮🇳</span>
-                      <span>+91</span>
-                    </div>
-                    <input
-                      id="prof-phone"
-                      type="tel"
-                      inputMode="numeric"
-                      maxLength={10}
-                      className={`form-input${errors.phone ? " input-error" : ""}`}
-                      {...register("phone", {
-                        onChange: (e) => {
-                          const only10 = e.target.value.replace(/\D/g, "").slice(0, 10);
-                          setValue("phone", only10, { shouldValidate: true });
-                        },
-                      })}
-                      style={{
-                        borderTopLeftRadius: 0,
-                        borderBottomLeftRadius: 0,
-                        flex: 1,
-                      }}
-                      placeholder="98765 43210"
-                    />
-                  </div>
-                ) : (
-                  user.phone ? (
-                    <div style={{ display: "flex", width: "100%" }}>
+                    {(isEditing || hasPhoneSet) && (
                       <div
                         style={{
                           display: "flex",
@@ -503,7 +461,7 @@ export default function ProfilePage() {
                           fontSize: "0.85rem",
                           fontWeight: 600,
                           color: "var(--color-text-primary)",
-                          opacity: 0.85,
+                          opacity: !isEditing ? 0.85 : 1,
                           userSelect: "none",
                           whiteSpace: "nowrap",
                         }}
@@ -511,35 +469,32 @@ export default function ProfilePage() {
                         <span role="img" aria-label="India" style={{ fontSize: "1.1rem" }}>🇮🇳</span>
                         <span>+91</span>
                       </div>
-                      <input
-                        id="prof-phone"
-                        type="text"
-                        className="form-input"
-                        value={getRawPhoneDigits(user.phone)}
-                        readOnly
-                        disabled
-                        style={{
-                          borderTopLeftRadius: 0,
-                          borderBottomLeftRadius: 0,
-                          opacity: 0.85,
-                          flex: 1,
-                        }}
-                      />
-                    </div>
-                  ) : (
+                    )}
                     <input
                       id="prof-phone"
-                      type="text"
-                      className="form-input"
-                      value=""
-                      readOnly
-                      disabled
-                      placeholder="Not set"
-                      style={{ opacity: 0.8, width: "100%" }}
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      className={`form-input${errors.phone ? " input-error" : ""}`}
+                      value={isEditing ? (watch("phone") ?? "") : (hasPhoneSet ? getRawPhoneDigits(user.phone) : "")}
+                      onChange={(e) => {
+                        const only10 = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        setValue("phone", only10, { shouldValidate: true });
+                      }}
+                      readOnly={!isEditing}
+                      disabled={!isEditing}
+                      style={{
+                        borderTopLeftRadius: (isEditing || hasPhoneSet) ? 0 : "var(--radius-md)",
+                        borderBottomLeftRadius: (isEditing || hasPhoneSet) ? 0 : "var(--radius-md)",
+                        opacity: !isEditing ? 0.85 : 1,
+                        flex: 1,
+                        width: (isEditing || hasPhoneSet) ? undefined : "100%",
+                      }}
+                      placeholder={!isEditing && !hasPhoneSet ? "Not set" : "98765 43210"}
                     />
-                  )
-                )}
-                {errors.phone && <span className="error-message">{errors.phone.message}</span>}
+                  </div>
+                  {errors.phone && <span className="error-message">{errors.phone.message}</span>}
+
 
               </div>
 
