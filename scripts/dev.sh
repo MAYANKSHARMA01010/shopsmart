@@ -32,7 +32,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 # ------------------------------------------------------------------------------
-# Helper: Check if Docker Daemon is Available
+# Helper: Ensure Docker Daemon is Running (Auto-launches on macOS / Linux)
 # ------------------------------------------------------------------------------
 is_docker_available() {
   if command -v docker &>/dev/null && docker info &>/dev/null; then
@@ -41,8 +41,50 @@ is_docker_available() {
   return 1
 }
 
+ensure_docker_running() {
+  if is_docker_available; then
+    echo -e "${GREEN}✓ Docker engine is active and running.${NC}"
+    return 0
+  fi
+
+  echo -e "${YELLOW}⚡ Docker daemon is not running. Attempting to launch Docker automatically...${NC}"
+
+  # macOS auto-launch
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [ -d "/Applications/Docker.app" ] || [ -d "$HOME/Applications/Docker.app" ] || [ -d "/System/Volumes/Data/Applications/Docker.app" ]; then
+      echo -e "${BLUE}🐳 Launching Docker Desktop for macOS...${NC}"
+      open -g -a Docker 2>/dev/null || open -a Docker 2>/dev/null || true
+    fi
+  elif command -v systemctl &>/dev/null; then
+    # Linux systemd auto-start
+    echo -e "${BLUE}🐳 Starting Docker service (systemctl)...${NC}"
+    sudo systemctl start docker 2>/dev/null || true
+  fi
+
+  # Wait for Docker engine to become responsive (up to 30 seconds with progress dots)
+  local max_attempts=30
+  local count=0
+  echo -ne "${BLUE}⏳ Waiting for Docker engine to initialize${NC}"
+  while [ $count -lt $max_attempts ]; do
+    if docker info &>/dev/null; then
+      echo -e "\n${GREEN}✓ Docker engine is ready and responsive.${NC}"
+      return 0
+    fi
+    echo -ne "."
+    sleep 1
+    count=$((count + 1))
+  done
+
+  echo -e "\n${YELLOW}⚠️  Docker Desktop took longer than 30s to initialize. Continuing with fallback mode...${NC}"
+  return 1
+}
+
+# Run Docker auto-start check
+ensure_docker_running || true
+
 # ------------------------------------------------------------------------------
 # 1. Release Occupied Host Ports (Node.js apps only, leaves Docker intact)
+
 # ------------------------------------------------------------------------------
 kill_port_if_busy() {
   local port=$1
