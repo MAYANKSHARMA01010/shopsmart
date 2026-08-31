@@ -274,15 +274,13 @@ if [ ! -f "apps/client/.env" ]; then
 fi
 
 # ------------------------------------------------------------------------------
-# 6. Generate Prisma Client & Build Monorepo Packages
+# 6. Generate Prisma Client
 # ------------------------------------------------------------------------------
 echo -e "${BLUE}🔧 Generating Prisma client...${NC}"
 pnpm --filter shopsmart-server db:generate
 
-echo -e "${BLUE}🔨 Building packages before starting dev servers...${NC}"
-pnpm turbo run build
-
 # ------------------------------------------------------------------------------
+
 # 7. Display Service Dashboard Banner
 # ------------------------------------------------------------------------------
 echo ""
