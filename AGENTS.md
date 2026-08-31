@@ -17,9 +17,14 @@ shopsmart/
 ├── apps/
 │   ├── client/                  # Next.js 16 (App Router) + React 19 + Zustand + React Query + Tailwind
 │   │   ├── src/app/             # App Router pages, layouts, error boundaries, and route handlers
-│   │   ├── src/features/        # Domain features (auth, cart, checkout, orders, products, wishlist)
-│   │   ├── src/components/      # Shared presentation UI components & layouts
-│   │   └── src/lib/             # API client (Axios), environment validation, utilities
+│   │   ├── src/features/        # Feature-Driven Domain modules (auth, cart, checkout, orders, products, wishlist, favorites, categories, analytics, users)
+│   │   │   └── <feature>/       # components/, hooks/, store/, services/, types/, reducers/, context/
+│   │   ├── src/components/      # Shared global presentation UI (Navbar, Footer, Skeleton, OptimizedImage, Logo, ThemeToggle)
+│   │   ├── src/context/         # Global application context (UIContext)
+│   │   ├── src/hooks/           # Global utility hooks (useDebounce, useLocalStorage, useMediaQuery, useImage, etc.)
+│   │   ├── src/lib/             # API client (Axios), environment validation, Razorpay loader
+│   │   └── src/providers/       # Application root providers (QueryProvider)
+
 │   └── server/                  # Express 5 + TypeScript + Prisma ORM + BullMQ + Nodemailer
 │       ├── prisma/              # schema.prisma, migrations, seed scripts
 │       └── src/
@@ -105,6 +110,22 @@ $$\text{Routes} \xrightarrow{\text{Zod Validation + PBAC}} \text{Controllers} \x
 * **Fast Gateway Ack:** Payment gateway webhooks (`/api/payment/webhook`) must verify HMAC SHA-256 signatures via `express.raw()`, insert the unique `eventId` into `ProcessedWebhook`, push the event to **BullMQ**, and respond `200 OK` in $< 50\text{ms}$.
 * **Deduplication:** Repeated webhook deliveries must hit the `ProcessedWebhook` database primary key constraint, return `200 OK` immediately, and skip duplicate processing.
 * **Transactional Email Hook:** On `payment.captured`, the webhook worker automatically triggers `emailService.sendOrderConfirmation(...)` to deliver a professional HTML receipt.
+
+### 2.6 Frontend Feature-Driven Design (FDD) & Barrel Exports
+* **Strict Feature Colocation:** Domain logic (components, hooks, stores, services, schemas, reducers, contexts) **MUST** live within `apps/client/src/features/<feature_name>/` and be exported through its clean index barrel (`@/features/<feature_name>`).
+* **Global vs. Feature Boundaries:**
+  - **Feature Modules (`src/features/*`)**: `auth`, `cart`, `checkout`, `orders`, `products`, `wishlist`, `favorites`, `categories`, `analytics`, `users`.
+  - **Global Primitives (`src/{components,context,hooks,lib,providers}`)**: Shared UI wrappers (`Navbar`, `Footer`, `Logo`, `ThemeToggle`, `Skeleton`, `OptimizedImage`, `SuspenseBoundary`), root context (`UIContext`), utility hooks (`useDebounce`, `useLocalStorage`, `useMediaQuery`, `useIntersectionObserver`, `useImage`, `useQueryParams`), and API/Razorpay clients.
+* **No Cross-Feature Direct File Reaches:** Always import across features using top-level barrel paths (e.g. `import { useCart } from "@/features/cart";`), never relative deep paths into other feature internals.
+
+### 2.7 Universal Skeleton UI & Zero Cumulative Layout Shift (CLS)
+* **Zero Raw Text / Blank Spinners:** Asynchronous data loading and mounting states must **NEVER** render unstyled plain text (e.g. `"Loading..."`) or jarring blank white containers.
+* **Geometry-Matched Shimmers:** Every asynchronous page and component must render a dedicated, geometry-matched shimmer skeleton from [`@/components/ui/Skeleton`](file:///Users/mayanksharma/Downloads/New_Projects/shopsmart/apps/client/src/components/ui/Skeleton.tsx) (`ProductDetailSkeleton`, `HomeHeroSkeleton`, `HomeQuadSkeleton`, `HomeRailSkeleton`, `ProductGridSkeleton`, `CartPageSkeleton`, `OrderListSkeleton`, `OrderDetailSkeleton`, `AddressListSkeleton`, `DashboardStatsSkeleton`, `DashboardTableSkeleton`).
+* **Accessible Loading State:** Skeletons must mark containers with `aria-busy="true"` and `aria-hidden="true"` on inner shimmers to preserve accessibility.
+
+### 2.8 Dynamic Auth-Aware UI Rendering
+* **Contextual Navigation & CTAs:** Landing pages and global navigation must dynamically reflect authenticated vs. guest states (e.g. personalized greetings, order tracking shortcuts, admin panel links) without requiring page reloads.
+
 
 ---
 

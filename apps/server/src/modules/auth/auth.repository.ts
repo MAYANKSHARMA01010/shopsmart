@@ -30,7 +30,7 @@ export class AuthRepository {
       const newUser = await tx.user.create({ data });
       await tx.cart.create({ data: { userId: newUser.id } });
       return newUser;
-    });
+    }, { maxWait: 10000, timeout: 20000 });
   }
 
   async updateUser(id: string, data: Prisma.UserUpdateInput) {

@@ -76,3 +76,38 @@ Each feature in the backend (`apps/server/src/modules/`) follows a strict 4-tier
 ### 🛒 3.4 Concurrency & Anti-Overselling Strategy
 - Financial values use **`Prisma.Decimal(10,2)`** to prevent floating-point rounding errors.
 - Inventory deductions use PostgreSQL row locks (`SELECT ... FOR UPDATE`) in deterministic order to prevent race conditions and overselling when multiple users checkout at the exact same second.
+
+---
+
+## 4. Frontend Feature-Driven Architecture (`apps/client/`)
+
+The frontend is structured into isolated, cohesive domain feature slices rather than monolithic horizontal layers:
+
+```
+apps/client/src/
+├── app/                         # Next.js 16 App Router pages & server routes
+├── features/                    # Domain-Driven Feature Slices
+│   ├── auth/                    # AuthContext, authStore, addressService, PBAC guards
+│   ├── cart/                    # CartStore, useCart memoized totals, item map
+│   ├── checkout/                # Checkout state machine, AddressSelector, PaymentButton
+│   ├── orders/                  # OrderService, order state tracking & detail views
+│   ├── products/                # ProductCard, filters, QuickViewModal, image gallery
+│   ├── wishlist/                # WishlistStore, custom folder collections
+│   ├── favorites/               # 1-click liked items store & grid
+│   ├── categories/              # Category tree navigation & taxonomy
+│   ├── analytics/               # Executive KPIs, Recharts telemetry
+│   └── users/                   # Admin user & role management
+├── components/                  # Shared presentation UI (Navbar, Footer, Skeleton, Logo)
+├── context/                     # Application-wide UI context (Modals, drawers)
+├── hooks/                       # Reusable utility hooks (useDebounce, useMediaQuery, useImage)
+└── lib/                         # Axios client, env validation, Razorpay SDK loader
+```
+
+### 4.1 Skeleton UI & Perceived Performance
+- Every data-fetching route implements geometry-matched shimmer skeletons in [`apps/client/src/components/ui/Skeleton.tsx`](file:///Users/mayanksharma/Downloads/New_Projects/shopsmart/apps/client/src/components/ui/Skeleton.tsx).
+- Prevents Cumulative Layout Shift (CLS) during page hydration and network latency.
+
+### 4.2 State Management Topology
+- **Client State (Zustand with persistence)**: `authStore`, `cartStore`, `wishlistStore`, `favoritesStore`, `checkoutStore`.
+- **Server Cache State (React Query / Axios)**: Products list, categories tree, orders history, analytics metrics.
+- **Local Ephemeral State (Context & Reducers)**: `FilterContext` + `filterReducer`, `UIContext` (drawers, search overlays).

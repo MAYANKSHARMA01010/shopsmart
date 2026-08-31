@@ -25,7 +25,7 @@ export class CheckoutRepository {
     fn: (tx: Prisma.TransactionClient) => Promise<T>,
     options?: { maxWait?: number; timeout?: number }
   ): Promise<T> {
-    return prisma.$transaction(fn, options);
+    return prisma.$transaction(fn, { maxWait: 10000, timeout: 20000, ...options });
   }
 
   async lockProductsForUpdate(productIds: string[], tx: Prisma.TransactionClient) {

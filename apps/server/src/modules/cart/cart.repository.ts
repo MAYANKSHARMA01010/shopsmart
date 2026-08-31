@@ -98,8 +98,9 @@ export class CartRepository {
   }
 
   async executeTransaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
-    return prisma.$transaction(fn);
+    return prisma.$transaction(fn, { maxWait: 10000, timeout: 20000 });
   }
+
 }
 
 export const cartRepository = new CartRepository();
