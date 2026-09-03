@@ -5,9 +5,9 @@ dotenv.config();
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  VITEST: z.string().optional(),
-  SERVER_PORT: z.string().default(process.env.PORT || '5001'),
-
+  VITEST: z.string().default('false'),
+  PORT: z.string().optional(),
+  SERVER_PORT: z.string().default('5001'),
   
   // URLs & Domains
   FRONTEND_LOCAL_URL: z.string().url().default('http://localhost:3000'),
@@ -53,21 +53,23 @@ const envSchema = z.object({
   SMTP_PORT: z.string().default('587'),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  SMTP_FROM: z.string().default('ShopSmart <no-reply@shopsmart.local>'),
+  SMTP_FROM: z.string().optional(),
 
   // WhatsApp Provider (WAHA)
-  WAHA_API_URL: z.string().default('http://localhost:6969'),
+  WAHA_API_URL: z.string().url().optional(),
   WAHA_API_KEY: z.string().optional(),
-  WAHA_SESSION: z.string().default('default'),
+  WAHA_SESSION: z.string().optional(),
+  WAHA_TIMEOUT_MS: z.string().default('10000'),
 
-  // Open-Source SMS Gateway (Docker / Android SMS Gateway)
-  SMS_GATEWAY_URL: z.string().default('http://localhost:9696'),
+  // Open-Source / Cloud SMS Gateway (InfiniReach / SMSGate)
+  SMS_GATEWAY_URL: z.string().url().optional(),
   SMS_GATEWAY_USER: z.string().optional(),
-
   SMS_GATEWAY_PASSWORD: z.string().optional(),
   SMS_GATEWAY_API_KEY: z.string().optional(),
+  SMS_GATEWAY_SENDER_PHONE: z.string().optional(),
+  SMS_GATEWAY_TIMEOUT_MS: z.string().default('30000'),
+  TEST_TARGET_PHONE: z.string().optional(),
 
-  
   // Logging
   LOG_LEVEL: z.string().default('info'),
   LOG_FORMAT: z.string().default('text'),
