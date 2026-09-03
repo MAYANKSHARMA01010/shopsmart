@@ -32,6 +32,40 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 # ------------------------------------------------------------------------------
+# Helper: Safe Environment Variable Reader (Prefers apps/server/.env, then root .env)
+# ------------------------------------------------------------------------------
+get_env_val() {
+  local key=$1
+  local val=""
+  if [ -f "$ROOT_DIR/apps/server/.env" ]; then
+    val=$(grep -E "^${key}=" "$ROOT_DIR/apps/server/.env" | head -n1 | cut -d '=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
+  fi
+  if [ -z "$val" ] && [ -f "$ROOT_DIR/.env" ]; then
+    val=$(grep -E "^${key}=" "$ROOT_DIR/.env" | head -n1 | cut -d '=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
+  fi
+  echo "$val"
+}
+
+# Resolve Ports & URLs from environment
+SERVER_PORT=$(get_env_val "SERVER_PORT")
+FRONTEND_PORT=$(get_env_val "FRONTEND_PORT")
+WAHA_PORT=$(get_env_val "WAHA_PORT")
+REDIS_PORT="6379"
+
+SERVER_PORT="${SERVER_PORT:-5001}"
+FRONTEND_PORT="${FRONTEND_PORT:-3000}"
+WAHA_PORT="${WAHA_PORT:-6969}"
+
+WAHA_API_URL=$(get_env_val "WAHA_API_URL")
+WAHA_API_KEY=$(get_env_val "WAHA_API_KEY")
+WAHA_SESSION=$(get_env_val "WAHA_SESSION")
+WAHA_DASHBOARD_USERNAME=$(get_env_val "WAHA_DASHBOARD_USERNAME")
+WAHA_DASHBOARD_PASSWORD=$(get_env_val "WAHA_DASHBOARD_PASSWORD")
+SMS_GATEWAY_URL=$(get_env_val "SMS_GATEWAY_URL")
+FRONTEND_LOCAL_URL=$(get_env_val "FRONTEND_LOCAL_URL")
+BACKEND_LOCAL_URL=$(get_env_val "BACKEND_LOCAL_URL")
+
+# ------------------------------------------------------------------------------
 # Helper: Ensure Docker Daemon is Running (Auto-launches on macOS / Linux)
 # ------------------------------------------------------------------------------
 is_docker_available() {
@@ -118,8 +152,8 @@ kill_port_if_busy() {
 }
 
 echo -e "${BLUE}🔍 Checking port availability for Node.js apps...${NC}"
-kill_port_if_busy 5001 "Backend API"
-kill_port_if_busy 3000 "Frontend Client"
+kill_port_if_busy "$SERVER_PORT" "Backend API"
+kill_port_if_busy "$FRONTEND_PORT" "Frontend Client"
 
 # ------------------------------------------------------------------------------
 # 2. Ensure Redis Service (Port 6379) - Protocol Verified
@@ -208,15 +242,25 @@ if is_docker_available; then
         docker pull "$WAHA_IMAGE" || true
       fi
       
-      echo -e "${BLUE}🐳 Creating and starting WAHA container on port 6969...${NC}"
+      echo -e "${BLUE}🐳 Creating and starting WAHA container on port ${WAHA_PORT}...${NC}"
       docker run -d \
         --name "$WAHA_CONTAINER" \
-        -p 6969:3000 \
+        -p "${WAHA_PORT}:3000" \
+        -v shopsmart-waha-sessions:/app/.sessions \
+        -e WHATSAPP_DEFAULT_ENGINE=NOWEB \
+        ${WAHA_API_KEY:+-e WAHA_API_KEY="${WAHA_API_KEY}"} \
+        ${WAHA_DASHBOARD_USERNAME:+-e WAHA_DASHBOARD_USERNAME="${WAHA_DASHBOARD_USERNAME}"} \
+        ${WAHA_DASHBOARD_PASSWORD:+-e WAHA_DASHBOARD_PASSWORD="${WAHA_DASHBOARD_PASSWORD}"} \
+        ${WAHA_DASHBOARD_USERNAME:+-e WHATSAPP_SWAGGER_USERNAME="${WAHA_DASHBOARD_USERNAME}"} \
+        ${WAHA_DASHBOARD_PASSWORD:+-e WHATSAPP_SWAGGER_PASSWORD="${WAHA_DASHBOARD_PASSWORD}"} \
+        ${WAHA_SESSION:+-e WHATSAPP_START_SESSION="${WAHA_SESSION}"} \
+        -e WHATSAPP_RESTART_ALL_SESSIONS=true \
         --restart unless-stopped \
         "$WAHA_IMAGE" >/dev/null 2>&1 || true
     fi
-    echo -e "${GREEN}✓ WAHA started successfully on http://localhost:6969${NC}"
+    echo -e "${GREEN}✓ WAHA started successfully on ${WAHA_API_URL:-http://localhost:${WAHA_PORT}}${NC}"
   fi
+
 else
   echo -e "${YELLOW}⚠️  Docker daemon is not running. WAHA container could not be started.${NC}"
   echo -e "${YELLOW}   (Start Docker Desktop to enable local WhatsApp OTP delivery).${NC}"
@@ -224,41 +268,21 @@ fi
 
 
 # ------------------------------------------------------------------------------
-# 4. Ensure Android SMS Gateway Docker Container (Port 9696 -> 8080)
+# 4. Android SMS Gateway — NOTE: requires Android phone with SMSGate app
 # ------------------------------------------------------------------------------
-echo -e "${BLUE}📱 Checking Android SMS Gateway service on port 9696...${NC}"
-if is_docker_available; then
-  SMS_IMAGE="ghcr.io/android-sms-gateway/server:latest"
-  SMS_CONTAINER="shopsmart-sms-gateway"
-  
-  # Check if container is already running
-  if docker ps --format '{{.Names}}' | grep -q "^${SMS_CONTAINER}$"; then
-    echo -e "${GREEN}✓ Android SMS Gateway is active and running on http://localhost:9696${NC}"
-  else
-    # Check if container exists but stopped
-    if docker ps -a --format '{{.Names}}' | grep -q "^${SMS_CONTAINER}$"; then
-      echo -e "${YELLOW}🔄 Starting existing Android SMS Gateway container (${SMS_CONTAINER})...${NC}"
-      docker start "$SMS_CONTAINER" >/dev/null 2>&1 || true
-    else
-      # Check if image is present, if not pull it
-      if ! docker images --format '{{.Repository}}' | grep -q "android-sms-gateway/server"; then
-        echo -e "${YELLOW}📥 Downloading Android SMS Gateway Docker image (${SMS_IMAGE})...${NC}"
-        docker pull "$SMS_IMAGE" || true
-      fi
-      
-      echo -e "${BLUE}🐳 Creating and starting Android SMS Gateway on port 9696...${NC}"
-      docker run -d \
-        --name "$SMS_CONTAINER" \
-        -p 9696:8080 \
-        -e SMS_GATEWAY_LOGIN=admin \
-        -e SMS_GATEWAY_PASSWORD=shopsmart_secret \
-        --restart unless-stopped \
-        "$SMS_IMAGE" >/dev/null 2>&1 || true
-    fi
-    echo -e "${GREEN}✓ Android SMS Gateway started on http://localhost:9696 (User: admin)${NC}"
-  fi
-else
-  echo -e "${YELLOW}⚠️  Docker daemon is not running. SMS Gateway container could not be started.${NC}"
+# The ghcr.io/android-sms-gateway/server image requires a MySQL/MariaDB database
+# and cannot run standalone against our Neon PostgreSQL cluster.
+# SMS OTP delivery works differently: install the free "SMSGate" app on an Android
+# phone, get credentials from the app Home screen, then set SMS_GATEWAY_URL,
+# SMS_GATEWAY_USER, and SMS_GATEWAY_PASSWORD in apps/server/.env.
+# The server then calls the phone's REST API directly — no Docker container needed.
+echo -e "${YELLOW}📱 SMS Gateway: Install the SMSGate Android app and configure apps/server/.env${NC}"
+echo -e "${YELLOW}   SMS_GATEWAY_URL=http://<phone-local-ip>:8080 (shown in the app)${NC}"
+
+# Remove any stale/broken SMS gateway container left over from previous runs
+if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "^shopsmart-sms-gateway$"; then
+  echo -e "${YELLOW}🗑️  Removing stale SMS gateway container (required MySQL, not PostgreSQL)...${NC}"
+  docker rm -f shopsmart-sms-gateway >/dev/null 2>&1 || true
 fi
 
 
@@ -289,11 +313,13 @@ echo ""
 echo -e "${BOLD}${MAGENTA}======================================================================${NC}"
 echo -e "${BOLD}${MAGENTA}                    🎉 ShopSmart Services Live                     ${NC}"
 echo -e "${BOLD}${MAGENTA}======================================================================${NC}"
-echo -e "  🛒 ${BOLD}Frontend App:${NC}         ${GREEN}http://localhost:3000${NC}"
-echo -e "  ⚙️  ${BOLD}Backend API:${NC}          ${GREEN}http://localhost:5001${NC}"
-echo -e "  💬 ${BOLD}WhatsApp (WAHA):${NC}      ${CYAN}http://localhost:6969/dashboard${NC}"
-echo -e "  📱 ${BOLD}Android SMS Gateway:${NC}  ${CYAN}http://localhost:9696${NC}  ${YELLOW}(admin / shopsmart_secret)${NC}"
-echo -e "  ⚡ ${BOLD}Redis Cache:${NC}          ${BLUE}localhost:6379${NC}"
+echo -e "  🛒 ${BOLD}Frontend App:${NC}         ${GREEN}${FRONTEND_LOCAL_URL:-http://localhost:${FRONTEND_PORT}}${NC}"
+echo -e "  ⚙️  ${BOLD}Backend API:${NC}          ${GREEN}${BACKEND_LOCAL_URL:-http://localhost:${SERVER_PORT}}/api/v1/health${NC}"
+echo -e "  💬 ${BOLD}WhatsApp (WAHA):${NC}      ${CYAN}${WAHA_API_URL:-http://localhost:${WAHA_PORT}}/dashboard${NC}"
+if [ -n "$SMS_GATEWAY_URL" ]; then
+  echo -e "  📱 ${BOLD}SMS Gateway URL:${NC}      ${CYAN}${SMS_GATEWAY_URL}${NC}"
+fi
+echo -e "  ⚡ ${BOLD}Redis Cache:${NC}          ${BLUE}localhost:${REDIS_PORT}${NC}"
 echo -e "${BOLD}${MAGENTA}======================================================================${NC}"
 echo ""
 
