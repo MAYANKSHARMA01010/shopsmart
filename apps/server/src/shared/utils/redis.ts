@@ -3,10 +3,14 @@ import logger from './logger';
 import { env } from '../config/env';
 
 const redisUrl = env.NODE_ENV === 'production' 
-  ? env.REDIS_SERVER_URL 
+  ? (env.REDIS_SERVER_URL || env.REDIS_LOCAL_URL) 
   : env.REDIS_LOCAL_URL;
 
-const redis = new Redis(redisUrl!, {
+if (!redisUrl) {
+  throw new Error('Redis connection URL is not configured in environment.');
+}
+
+const redis = new Redis(redisUrl, {
   maxRetriesPerRequest: null,
   retryStrategy: (times) => {
     // Fail fast in test environment

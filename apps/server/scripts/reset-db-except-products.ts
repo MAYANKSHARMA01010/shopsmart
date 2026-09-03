@@ -9,7 +9,10 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const prisma = new PrismaClient();
 
-const redisUrl = process.env.REDIS_LOCAL_URL || process.env.REDIS_SERVER_URL || 'redis://localhost:6379';
+const redisUrl = process.env.REDIS_LOCAL_URL || process.env.REDIS_SERVER_URL;
+if (!redisUrl) {
+  throw new Error('REDIS_LOCAL_URL or REDIS_SERVER_URL is not defined in environment.');
+}
 const redis = new Redis(redisUrl, { maxRetriesPerRequest: null, lazyConnect: true });
 
 async function flushRedisCache(): Promise<void> {

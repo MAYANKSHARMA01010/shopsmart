@@ -11,10 +11,14 @@ if (isTestEnv) {
   dbUrl = env.TEST_DATABASE_URL;
 }
 
-const safeHost = dbUrl ? new URL(dbUrl).host : 'unknown';
+if (!dbUrl) {
+  throw new Error(`Database connection URL is not configured for environment: ${env.NODE_ENV}`);
+}
+
+const safeHost = new URL(dbUrl).host;
 
 logger.info(`[DATABASE ROUTING AUDIT] NODE_ENV=${env.NODE_ENV}`);
-logger.info(`[DATABASE ROUTING AUDIT] VITEST=${env.VITEST || 'false'}`);
+logger.info(`[DATABASE ROUTING AUDIT] VITEST=${env.VITEST}`);
 logger.info(`[DATABASE ROUTING AUDIT] Selected Database=${isTestEnv ? 'TEST_DATABASE_URL' : 'DATABASE_URL'}`);
 logger.info(`[DATABASE ROUTING AUDIT] Database Host=${safeHost}`);
 

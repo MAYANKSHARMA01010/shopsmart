@@ -48,7 +48,10 @@ class EmailService {
 
   async send(message: EmailMessage): Promise<void> {
     const transporter = this.getTransporter();
-    const from = env.SMTP_FROM || 'no-reply@shopsmart.local';
+    if (!env.SMTP_FROM) {
+      throw new Error('SMTP_FROM is not defined in environment.');
+    }
+    const from = env.SMTP_FROM;
 
     const info = await transporter.sendMail({
       from,

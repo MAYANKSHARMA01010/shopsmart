@@ -29,7 +29,10 @@ if (env.NODE_ENV !== 'test') {
 }
 
 const app = express();
-const PORT = process.env.PORT || env.SERVER_PORT || 5001;
+const PORT = Number(env.PORT || env.SERVER_PORT);
+if (isNaN(PORT) || PORT <= 0) {
+  throw new Error('SERVER_PORT is not properly configured in environment.');
+}
 
 
 // Security & rate limiting middlewares

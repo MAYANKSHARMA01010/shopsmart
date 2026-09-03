@@ -30,9 +30,14 @@ export class RazorpayGateway implements PaymentGateway {
       // Razorpay expects amount in subunits (paise for INR)
       const amountInSubunits = params.amount.mul(100).toNumber();
       
+      const currency = params.currency || env.DEFAULT_CURRENCY;
+      if (!currency) {
+        throw new AppError('Currency is not configured in environment or request.', 400);
+      }
+
       const options = {
         amount: amountInSubunits,
-        currency: params.currency || env.DEFAULT_CURRENCY || 'INR',
+        currency,
         receipt: params.orderId,
         notes: params.notes || {},
       };
