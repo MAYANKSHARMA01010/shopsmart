@@ -56,7 +56,7 @@ SERVER_PORT="${SERVER_PORT:-5001}"
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 WAHA_PORT="${WAHA_PORT:-6969}"
 
-WAHA_API_URL=$(get_env_val "WAHA_API_URL")
+WAHA_LOCAL_API_URL=$(get_env_val "WAHA_LOCAL_API_URL")
 WAHA_API_KEY=$(get_env_val "WAHA_API_KEY")
 WAHA_SESSION=$(get_env_val "WAHA_SESSION")
 WAHA_DASHBOARD_USERNAME=$(get_env_val "WAHA_DASHBOARD_USERNAME")
@@ -258,7 +258,7 @@ if is_docker_available; then
         --restart unless-stopped \
         "$WAHA_IMAGE" >/dev/null 2>&1 || true
     fi
-    echo -e "${GREEN}✓ WAHA started successfully on ${WAHA_API_URL:-http://localhost:${WAHA_PORT}}${NC}"
+    echo -e "${GREEN}✓ WAHA started successfully on ${WAHA_LOCAL_API_URL:-http://localhost:${WAHA_PORT}}${NC}"
   fi
 
 else
@@ -315,7 +315,7 @@ echo -e "${BOLD}${MAGENTA}                    🎉 ShopSmart Services Live      
 echo -e "${BOLD}${MAGENTA}======================================================================${NC}"
 echo -e "  🛒 ${BOLD}Frontend App:${NC}         ${GREEN}${FRONTEND_LOCAL_URL:-http://localhost:${FRONTEND_PORT}}${NC}"
 echo -e "  ⚙️  ${BOLD}Backend API:${NC}          ${GREEN}${BACKEND_LOCAL_URL:-http://localhost:${SERVER_PORT}}/api/v1/health${NC}"
-echo -e "  💬 ${BOLD}WhatsApp (WAHA):${NC}      ${CYAN}${WAHA_API_URL:-http://localhost:${WAHA_PORT}}/dashboard${NC}"
+echo -e "  💬 ${BOLD}WhatsApp (WAHA):${NC}      ${CYAN}${WAHA_LOCAL_API_URL:-http://localhost:${WAHA_PORT}}/dashboard${NC}"
 if [ -n "$SMS_GATEWAY_URL" ]; then
   echo -e "  📱 ${BOLD}SMS Gateway URL:${NC}      ${CYAN}${SMS_GATEWAY_URL}${NC}"
 fi
