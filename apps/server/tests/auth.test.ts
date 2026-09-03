@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import crypto from 'crypto';
 import app from '../src/server';
 import prisma from '../src/shared/config/database';
+import { phoneOtpDispatcher } from '../src/modules/sms/phoneOtp.dispatcher';
 
 
 describe('ShopSmart — Auth Integration Tests', () => {
@@ -249,6 +250,12 @@ describe('ShopSmart — Auth Integration Tests', () => {
 
     it('should reject phone OTP when phone is not set, and verify successfully when set via WhatsApp and SMS channels', async () => {
       const randomSpy = vi.spyOn(crypto, 'randomInt').mockReturnValue(987654 as never);
+      const otpSpy = vi.spyOn(phoneOtpDispatcher, 'dispatchOtp').mockImplementation(async (_phone, _otp, channel = 'whatsapp') => {
+        return {
+          channelUsed: channel,
+          success: true,
+        };
+      });
 
       // 0. Reset phone to empty
       await request(app)
@@ -298,6 +305,7 @@ describe('ShopSmart — Auth Integration Tests', () => {
       expect(verifyPhoneRes.status).toBe(200);
       expect(verifyPhoneRes.body.data.user.isPhoneVerified).toBe(true);
 
+      otpSpy.mockRestore();
       randomSpy.mockRestore();
     });
   });
