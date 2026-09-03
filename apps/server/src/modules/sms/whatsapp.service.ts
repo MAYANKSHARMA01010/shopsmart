@@ -1,3 +1,4 @@
+
 import { env } from '../../shared/config/env';
 import logger from '../../shared/utils/logger';
 
@@ -12,18 +13,32 @@ export class WhatsappService {
   }
 
   /**
+   * Resolves the active WAHA API endpoint based on environment
+   */
+  private getBaseUrl(): string | undefined {
+    if (env.NODE_ENV === 'production') {
+      return env.WAHA_HOSTED_API_URL;
+    }
+    return env.WAHA_LOCAL_API_URL;
+  }
+
+  /**
    * Sends any custom text message via WAHA (WhatsApp HTTP API)
    */
   async sendMessage(phone: string, message: string): Promise<boolean> {
-    if (!env.WAHA_API_URL || !env.WAHA_SESSION) {
+    const baseUrl = this.getBaseUrl();
+    if (!baseUrl || !env.WAHA_SESSION) {
       logger.warn('whatsapp.message.skipped', {
-        reason: 'WAHA_API_URL or WAHA_SESSION is not configured in environment.',
+        reason:
+          env.NODE_ENV === 'production'
+            ? 'WAHA_HOSTED_API_URL or WAHA_SESSION is not configured in environment.'
+            : 'WAHA_LOCAL_API_URL or WAHA_SESSION is not configured in environment.',
       });
       return false;
     }
 
     const chatId = this.formatJid(phone);
-    const url = `${env.WAHA_API_URL.replace(/\/$/, '')}/api/sendText`;
+    const url = `${baseUrl.replace(/\/$/, '')}/api/sendText`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };

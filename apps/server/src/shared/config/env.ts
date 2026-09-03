@@ -56,13 +56,14 @@ const envSchema = z.object({
   SMTP_FROM: z.string().optional(),
 
   // WhatsApp Provider (WAHA)
-  WAHA_API_URL: z.string().url().optional(),
+  WAHA_LOCAL_API_URL: z.string().url().optional().or(z.literal('')),
+  WAHA_HOSTED_API_URL: z.string().url().optional().or(z.literal('')),
   WAHA_API_KEY: z.string().optional(),
   WAHA_SESSION: z.string().optional(),
   WAHA_TIMEOUT_MS: z.string().default('10000'),
 
   // Open-Source / Cloud SMS Gateway (InfiniReach / SMSGate)
-  SMS_GATEWAY_URL: z.string().url().optional(),
+  SMS_GATEWAY_URL: z.string().url().optional().or(z.literal('')),
   SMS_GATEWAY_USER: z.string().optional(),
   SMS_GATEWAY_PASSWORD: z.string().optional(),
   SMS_GATEWAY_API_KEY: z.string().optional(),
