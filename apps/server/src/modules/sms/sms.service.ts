@@ -1,56 +1,148 @@
-import axios from 'axios';
 import { env } from '../../shared/config/env';
 import logger from '../../shared/utils/logger';
 
+/**
+ * Universal SMS Service supporting:
+ *  1. InfiniReach Cloud API (https://api.infinireach.io/api/v1/messages via X-API-Key)
+ *  2. SMSGate Cloud API (https://api.sms-gate.app/3rdparty/v1/messages via Basic Auth)
+ *  3. Local/Direct Android Phone Relay (custom SMS_GATEWAY_URL)
+ */
 export class SmsService {
   /**
-   * Dispatches OTP via Open-Source Android SMS Gateway (Docker / Self-Hosted on Render)
+   * Sends any custom text message via connected SMS Gateway / InfiniReach
    */
-  async sendOtp(phone: string, otp: string): Promise<boolean> {
-    const message = `ShopSmart: Your security verification code is ${otp}. Valid for 5 minutes. Please do not share.`;
-    const targetPhone = phone.startsWith('+91') ? phone : `+91${phone.replace(/\D/g, '').slice(-10)}`;
+  async sendMessage(phone: string, message: string): Promise<boolean> {
+    // Normalize phone number to E.164 (+91XXXXXXXXXX)
+    const digits = phone.replace(/\D/g, '');
+    const targetPhone = digits.length === 10 ? `+91${digits}` : `+${digits}`;
 
-    const baseUrl = env.SMS_GATEWAY_URL.replace(/\/$/, '');
-    const url = baseUrl.endsWith('/message') ? baseUrl : `${baseUrl}/message`;
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    if (env.SMS_GATEWAY_USER && env.SMS_GATEWAY_PASSWORD) {
-      const basicAuth = Buffer.from(`${env.SMS_GATEWAY_USER}:${env.SMS_GATEWAY_PASSWORD}`).toString('base64');
-      headers['Authorization'] = `Basic ${basicAuth}`;
-    } else if (env.SMS_GATEWAY_API_KEY) {
-      headers['Authorization'] = `Bearer ${env.SMS_GATEWAY_API_KEY}`;
-    }
-
-    // Standard Android SMS Gateway JSON payload (sends to any number via phone SIM)
-    const payload = {
-      phoneNumbers: [targetPhone],
-      message,
-    };
+    const controller = new AbortController();
+    const timeoutMs = Number(env.SMS_GATEWAY_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await axios.post(url, payload, {
-        headers,
-        timeout: 8000,
-      });
+      // -----------------------------------------------------------------------
+      // Option 1: InfiniReach Cloud (API Key Authentication)
+      // -----------------------------------------------------------------------
+      if (env.SMS_GATEWAY_API_KEY) {
+        if (!env.SMS_GATEWAY_URL) {
+          logger.warn('sms.message.skipped', {
+            reason: 'SMS_GATEWAY_URL is not configured in environment.',
+          });
+          return false;
+        }
 
-      logger.info('sms.otp.sent', {
-        phone: targetPhone,
-        status: response.status,
-      });
-      return true;
-    } catch (error: unknown) {
-      const err = error as { message?: string; response?: { status?: number; data?: unknown } };
-      logger.warn('sms.otp.failed', {
-        phone: targetPhone,
-        error: err.message,
-        statusCode: err.response?.status,
-        note: 'Android SMS Gateway server may be offline or phone not connected.',
+        if (!env.SMS_GATEWAY_SENDER_PHONE) {
+          logger.warn('sms.message.skipped', {
+            reason: 'SMS_GATEWAY_SENDER_PHONE is not configured in environment.',
+          });
+          return false;
+        }
+
+        const url = env.SMS_GATEWAY_URL;
+        const fromPhone = env.SMS_GATEWAY_SENDER_PHONE;
+
+        const payload = {
+          to: targetPhone,
+          message,
+          from: fromPhone,
+          channel: 'sms',
+        };
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': env.SMS_GATEWAY_API_KEY,
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+
+        if (response.ok && body.success !== false) {
+          logger.info('sms.message.sent', { provider: 'infinireach', phone: targetPhone, status: response.status });
+          return true;
+        }
+
+        logger.warn('sms.message.rejected', {
+          provider: 'infinireach',
+          phone: targetPhone,
+          status: response.status,
+          error: (body.errorMessage as string) || (body.errorCode as string) || 'Rejected by gateway',
+          details: body,
+        });
+        return false;
+      }
+
+      // -----------------------------------------------------------------------
+      // Option 2: SMSGate Cloud (Username + Password Basic Auth)
+      // -----------------------------------------------------------------------
+      if (env.SMS_GATEWAY_USER && env.SMS_GATEWAY_PASSWORD) {
+        if (!env.SMS_GATEWAY_URL) {
+          logger.warn('sms.message.skipped', {
+            reason: 'SMS_GATEWAY_URL is not configured in environment.',
+          });
+          return false;
+        }
+
+        const url = env.SMS_GATEWAY_URL;
+        const basicAuth = Buffer.from(`${env.SMS_GATEWAY_USER}:${env.SMS_GATEWAY_PASSWORD}`).toString('base64');
+
+        const payload = {
+          textMessage: { text: message },
+          phoneNumbers: [targetPhone],
+        };
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${basicAuth}`,
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+
+        if (response.ok) {
+          logger.info('sms.message.sent', { provider: 'smsgate', phone: targetPhone, status: response.status });
+          return true;
+        }
+
+        logger.warn('sms.message.rejected', {
+          provider: 'smsgate',
+          phone: targetPhone,
+          status: response.status,
+          details: body,
+        });
+        return false;
+      }
+
+      logger.warn('sms.message.skipped', {
+        reason: 'No SMS Gateway credentials configured in .env. Set SMS_GATEWAY_API_KEY (InfiniReach) or SMS_GATEWAY_USER/PASSWORD (SMSGate).',
       });
       return false;
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      logger.warn('sms.message.failed', {
+        phone: targetPhone,
+        error: err.message,
+      });
+      return false;
+    } finally {
+      clearTimeout(timeout);
     }
+  }
+
+  /**
+   * Dispatches OTP via SMS Gateway
+   */
+  async sendOtp(phone: string, otp: string): Promise<boolean> {
+    const message = `ShopSmart: Your security verification code is ${otp}. Valid for 5 minutes. Do not share this code.`;
+    return this.sendMessage(phone, message);
   }
 }
 
