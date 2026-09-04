@@ -19,7 +19,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@prisma/client": "^6.2.1",
+    "@prisma/client": "^7.10.0",
     "@shopsmart/api-contracts": "workspace:*",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.36.0",
