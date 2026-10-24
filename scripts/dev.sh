@@ -184,7 +184,7 @@ if is_redis_responsive; then
   echo -e "${GREEN}✓ Redis is active and responding (PONG) on port 6379.${NC}"
 else
   # If port 6379 is occupied by an unresponsive or non-Redis process, release it!
-  local busy_pids_6379=$(lsof -ti :6379 2>/dev/null || true)
+  busy_pids_6379=$(lsof -ti :6379 2>/dev/null || true)
   if [ -n "$busy_pids_6379" ]; then
     echo -e "${YELLOW}⚠️  Port 6379 is occupied by a non-Redis or unresponsive process. Releasing port 6379...${NC}"
     kill_port_if_busy 6379 "Non-Redis 6379"
@@ -297,6 +297,14 @@ fi
 if [ ! -f "apps/client/.env" ]; then
   echo -e "${YELLOW}⚠️  apps/client/.env not found. Creating from .env.example...${NC}"
   cp apps/client/.env.example apps/client/.env
+fi
+
+# ------------------------------------------------------------------------------
+# 5b. Ensure Dependencies are Installed
+# ------------------------------------------------------------------------------
+if [ ! -d "node_modules" ] || [ ! -d "node_modules/.bin" ] || [ ! -f "node_modules/.bin/prisma" ]; then
+  echo -e "${YELLOW}📦 Node dependencies missing. Installing workspace packages...${NC}"
+  pnpm install
 fi
 
 # ------------------------------------------------------------------------------
